@@ -1,18 +1,6 @@
 /*
-	Windows XP CD Key Verification/Generator v0.03
-	by z22
-	
-	Compile with OpenSSL libs, modify to suit your needs.
-	http://gnuwin32.sourceforge.net/packages/openssl.htm
-
-	History:
-	0.03	Stack corruptionerror on exit fixed (now pkey is large enough)
-			More Comments added
-	0.02	Changed name the *.cpp;
-			Fixed minor bugs & Make it compilable on VC++
-	0.01	First version compilable MingW
-
-
+	Windows XP CD Key Verification/Generator by z22
+	Rewritten by Endermanch
 */
 
 #include <cstdio>
@@ -25,9 +13,6 @@
 
 #define FIELD_BITS 384
 #define FIELD_BYTES 48
-
-typedef unsigned char U8;
-typedef unsigned long U32;
 
 HANDLE hConsole;
 unsigned char charset[] = "BCDFGHJKMPQRTVWXY2346789";
