@@ -581,6 +581,8 @@ int main() {
 	
     // Cleanup
 	BN_CTX_free(context);
-	
+
+    system("pause");
+
 	return 0;
 }
