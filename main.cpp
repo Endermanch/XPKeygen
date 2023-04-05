@@ -323,7 +323,7 @@ void generateKey(unsigned char *pKey, EC_GROUP *eCurve, EC_POINT *generator, BIG
 		unsigned char md[SHA_DIGEST_LENGTH], buf[FIELD_BYTES], t[4];
 		unsigned long hash[1];
 
-        /* h = (fist 32 bits of SHA1(pRaw || r.x, r.y)) >> 4 */
+        // h = (First-32(SHA1(pRaw, r.x, r.y)) >> 4
 		SHA1_Init(&hContext);
 
         // Chop Raw Product Key into 4 bytes.
@@ -564,7 +564,6 @@ int main() {
     printf("\n");
 
     pRaw[0] <<= 1;
-
 
     for (int i = 0; i < 10; i++) {
         cprintf("Product Key %d:\n", 0x08, i + 1);
