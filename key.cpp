@@ -75,7 +75,7 @@ void printProductID(const ul32 *pRaw) {
     char b[6], c[8];
 
     // Cut away last bit of the product key and convert it to an ASCII-number (=raw)
-    sprintf(raw, "%lu", pRaw[0] >> 1);
+    sprintf(raw, "%09lu", pRaw[0] >> 1);
 
     // Make B-part {...-640-...} -> most significant 3 digits of Raw Product Key
     strncpy(b, raw, 3);
@@ -83,9 +83,6 @@ void printProductID(const ul32 *pRaw) {
 
     // Make C-part {...-123456X-...} -> least significant 6 digits of Raw Product Key
     strcpy(c, raw + 3);
-
-    // Make checksum digit-part {...56X-}
-    assert(strlen(c) == 6);
 
     int digit = 0;
 

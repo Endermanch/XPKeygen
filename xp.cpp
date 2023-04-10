@@ -4,6 +4,24 @@
 
 #include "header.h"
 
+const char pXP[] = "92ddcf14cb9e71f4489a2e9ba350ae29454d98cb93bdbcc07d62b502ea12238ee904a8b20d017197aae0c103b32713a9";
+const long aXP = 1;
+const long bXP = 0;
+
+// Base point G (Generator)
+const char genXXP[] = "46E3775ECE21B0898D39BEA57050D422A0AF989E497962BAEE2CB17E0A28D5360D5476B8DC966443E37A14F1AEF37742";
+const char genYXP[] = "7C8E741D2C34F4478E325469CD491603D807222C9C4AC09DDB2B31B3CE3F7CC191B3580079932BC6BEF70BE27604F65E";
+
+// Inverse of the public key
+const char pubXXP[] = "5D8DBE75198015EC41C45AAB6143542EB098F6A5CC9CE4178A1B8A1E7ABBB5BC64DF64FAF6177DC1B0988AB00BA94BF8";
+const char pubYXP[] = "23A2909A0B4803C89F910C7191758B48746CEA4D5FF07667444ACDB9512080DBCA55E6EBF30433672B894F44ACE92BFA";
+
+// The order of G was computed in 18 hours using a Pentium III 450
+const char genOrderXP[] = "DB6B4C58EFBAFD";
+
+// The private key was computed in 10 hours using a Pentium III 450
+const char privateKeyXP[] = "565B0DFF8496C8";
+
 /* Unpacks the Product Key. */
 void unpackXP(ul32 *serial, ul32 *hash, ul32 *sig, ul32 *raw) {
 
@@ -159,7 +177,7 @@ void verifyXPKey(EC_GROUP *eCurve, EC_POINT *generator, EC_POINT *publicKey, cha
 }
 
 /* Generate a valid Product Key. */
-void generateXPKey(byte *pKey, EC_GROUP *eCurve, EC_POINT *generator, BIGNUM *order, BIGNUM *privateKey, ul32 *pRaw) {
+void generateXPKey(byte *pKey, EC_GROUP *eCurve, EC_POINT *generator, BIGNUM *order, BIGNUM *privateKey, ul32 *pRaw, ul32 *hash, ul32 *sig) {
     EC_POINT *r = EC_POINT_new(eCurve);
     BN_CTX *ctx = BN_CTX_new();
 
@@ -184,7 +202,6 @@ void generateXPKey(byte *pKey, EC_GROUP *eCurve, EC_POINT *generator, BIGNUM *or
 		
 		SHA_CTX hContext;
 		byte md[SHA_DIGEST_LENGTH], buf[FIELD_BYTES], t[4];
-		ul32 hash[1];
 
         // h = (First-32(SHA1(pRaw, r.x, r.y)) >> 4
 		SHA1_Init(&hContext);
@@ -218,30 +235,28 @@ void generateXPKey(byte *pKey, EC_GROUP *eCurve, EC_POINT *generator, BIGNUM *or
 		SHA1_Final(md, &hContext);
 
         // h = (First-32(SHA1(pRaw, r.x, r.y)) >> 4
-		hash[0] = (md[0] | (md[1] << 8) | (md[2] << 16) | (md[3] << 24)) >> 4;
-		hash[0] &= 0xfffffff;
+		*hash = (md[0] | (md[1] << 8) | (md[2] << 16) | (md[3] << 24)) >> 4;
+		*hash &= 0xfffffff;
 		
 		/* s = privateKey * hash + c; */
         // s = privateKey;
 		BN_copy(s, privateKey);
 
         // s *= hash;
-        BN_mul_word(s, hash[0]);
+        BN_mul_word(s, *hash);
 
         // BN_mod_add() adds a to b % m and places the non-negative result in r.
         // s = |s + c % order|;
 		BN_mod_add(s, s, c, order, ctx);
 
         // Convert s from BigNum back to bytecode and reverse the endianness.
-		ul32 sig[2]{};
-
 		BN_bn2bin(s, (byte *)sig);
         endiannessConvert((byte *) sig, BN_num_bytes(s));
 
         // Pack product key.
         packXP(bKey, pRaw, hash, sig);
 
-        printf("PID: %.8lX\nHash: %.8lX\nSignature: %.8lX %.8lX\n\n", pRaw[0], hash[0], sig[1], sig[0]);
+        printf("PID: %.8lX\nHash: %.8lX\nSignature: %.8lX %.8lX\n\n", pRaw[0], *hash, sig[1], sig[0]);
 	} while (bKey[3] >= 0x40000);
     // ↑ ↑ ↑
     // bKey[3] can't be longer than 18 bits, else the signature part will make
@@ -257,4 +272,51 @@ void generateXPKey(byte *pKey, EC_GROUP *eCurve, EC_POINT *generator, BIGNUM *or
 
     BN_CTX_free(ctx);
 	EC_POINT_free(r);
+}
+
+int keyXP(char *pKey, ul32 *hash, ul32 *sig, ul32 nRaw) {
+	assert(nRaw <= 1'000'000'000);
+
+	// We cannot produce a valid key without knowing the private key k. The reason for this is that
+	// we need the result of the function K(x; y) = kG(x; y).
+	BIGNUM *privateKey = BN_new();
+
+	// We can, however, validate any given key using the available public key: {p, a, b, G, K}.
+	// genOrder the order of the generator G, a value we have to reverse -> Schoof's Algorithm.
+	BIGNUM *genOrder = BN_new();
+
+	/* Computed data */
+	BN_hex2bn(&genOrder, genOrderXP);
+	BN_hex2bn(&privateKey, privateKeyXP);
+
+	EC_POINT *genPoint, *pubPoint;
+	EC_GROUP *eCurve = initializeEllipticCurve(
+		pXP,
+		aXP,
+		bXP,
+		genXXP,
+		genYXP,
+		pubXXP,
+		pubYXP,
+		genOrder,
+		privateKey,
+		&genPoint,
+		&pubPoint
+	);
+
+	// Shift left once.
+	nRaw <<= 1;
+
+	cprintf("Product Key:", 0x0A);
+
+	// Generate the key.
+	generateXPKey((byte *)pKey, eCurve, genPoint, genOrder, privateKey, &nRaw, hash, sig);
+	printProductKey(pKey);
+
+	printf("\n\n");
+
+	// Verify the key.
+	verifyXPKey(eCurve, genPoint, pubPoint, pKey);
+
+	return 0;
 }
