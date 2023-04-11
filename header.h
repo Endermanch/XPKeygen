@@ -43,10 +43,14 @@
 #define IDC_LABEL1  1055
 #define IDC_LABEL2  1056
 #define IDC_LABEL3  1057
+#define IDC_LABEL4  1058
+#define IDC_LABEL5  1059
 
 typedef unsigned long ul32;
 
 extern HANDLE hConsole;
+
+extern ul32 dwSeed;
 extern byte charset[];
 
 extern const char pXP[];
@@ -128,6 +132,7 @@ void generateServerKey(
 // utilities.cpp
 void cprintf(const char *Format, int nColor, ...);
 void endiannessConvert(byte *data, int length);
+ul32 randomRange(ul32 dwLow, ul32 dwHigh);
 
 EC_GROUP *initializeEllipticCurve(
         const char  *pSel,

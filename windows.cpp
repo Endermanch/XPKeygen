@@ -1,4 +1,4 @@
-//
+﻿//
 // Created by Andrew on 10/04/2023.
 //
 
@@ -13,33 +13,8 @@
 
 HWND hMainWindow;
 
-const WCHAR *pAboutLink = L"http://github.com/Endermanch/XPKeygen";
-
-void InitializeFonts(HFONT *hLabelFont, HFONT *hSmolFont, HFONT *hBoldFont, HFONT *hCaptionFont) {
-    NONCLIENTMETRICSW nonClientMetrics;
-
-    // Get information about the default system font.
-    nonClientMetrics.cbSize = sizeof(NONCLIENTMETRICSW);
-    SystemParametersInfoW(SPI_GETNONCLIENTMETRICS, sizeof(NONCLIENTMETRICSW), &nonClientMetrics, 0);
-
-    ULONG defaultHeight = nonClientMetrics.lfMessageFont.lfHeight;
-
-    // Create default font.
-    *hLabelFont = CreateFontIndirectW(&nonClientMetrics.lfMessageFont);
-
-    // Create smol font.
-    nonClientMetrics.lfMessageFont.lfHeight = 12;
-    *hSmolFont = CreateFontIndirectW(&nonClientMetrics.lfMessageFont);
-
-    // Create bold font.
-    nonClientMetrics.lfMessageFont.lfWeight = 700;
-    nonClientMetrics.lfMessageFont.lfHeight = defaultHeight;
-    *hBoldFont = CreateFontIndirectW(&nonClientMetrics.lfMessageFont);
-
-    // Create caption font.
-    nonClientMetrics.lfMessageFont.lfHeight = 30;
-    *hCaptionFont = CreateFontIndirectW(&nonClientMetrics.lfMessageFont);
-}
+const WCHAR *pAboutLink = L"https://github.com/Endermanch/XPKeygen",
+            *pWebsite = L"https://malwarewatch.org";
 
 bool PlayAudio(HINSTANCE hInstance, WCHAR *lpName, UINT bFlags) {
     HANDLE hResInfo = FindResourceW(hInstance, lpName, L"WAVE");
@@ -56,6 +31,63 @@ bool PlayAudio(HINSTANCE hInstance, WCHAR *lpName, UINT bFlags) {
     FreeResource(hRes);
 
     return sndPlaySoundW(lpRes, SND_MEMORY | bFlags);
+}
+
+/* Static link processor. */
+LRESULT StaticLinkProc(HWND hWindow, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData) {
+    static TRACKMOUSEEVENT  trackMouse;
+    static BOOL             isSet = FALSE;
+
+    // The worst part here was to avoid pointer flickering, as well as spamming the SetCursor function.
+    switch (uMsg) {
+
+        // Set the struct up outside of a frequently executed message to speed things up.
+        case WM_APP + IDC_LABEL4: {
+            trackMouse.cbSize = sizeof(TRACKMOUSEEVENT);
+            trackMouse.dwFlags = TME_LEAVE;
+            trackMouse.dwHoverTime = HOVER_DEFAULT;
+            trackMouse.hwndTrack = hWindow;
+
+            break;
+        }
+
+        // You have to turn off the WM_SETCURSOR, because it spams the SetCursor function with IDC_ARROW in the DefWndProc. Moist garbage.
+        case WM_SETCURSOR: break;
+
+        // Set cursor to hand if it's inside of static area, refresh the mouse tracking loop.
+        case WM_MOUSEMOVE: {
+            if (!isSet) {
+                TrackMouseEvent(&trackMouse);
+                SetCursor(LoadCursorW(NULL, IDC_HAND));
+
+                isSet = TRUE;
+            }
+
+            break;
+        }
+
+        // Set cursor back to normal if it's outside of static area.
+        case WM_MOUSELEAVE: {
+            if (isSet) {
+                SetCursor(LoadCursorW(NULL, IDC_ARROW));
+                isSet = FALSE;
+            }
+
+            break;
+        }
+
+        // Remove the subclass before window closes.
+        case WM_NCDESTROY: {
+            RemoveWindowSubclass(hWindow, StaticLinkProc, 1);
+
+            break;
+        }
+
+        // Pass everything else to DefWndProc.
+        default: return DefSubclassProc(hWindow, uMsg, wParam, lParam);
+    }
+
+    return 0;
 }
 
 LRESULT CALLBACK WNDProc(HWND hWindow, UINT uMessage, WPARAM wParam, LPARAM lParam) {
@@ -115,13 +147,6 @@ LRESULT CALLBACK WNDProc(HWND hWindow, UINT uMessage, WPARAM wParam, LPARAM lPar
         break;
 
     case WM_PAINT: {
-        RECT rGroup = {
-            10,
-            165,
-            589,
-            430
-        };
-
         SelectObject(hMainDC, hFrameColor);
         SelectObject(hMainDC, GetStockObject(HOLLOW_BRUSH));
 
@@ -137,6 +162,14 @@ LRESULT CALLBACK WNDProc(HWND hWindow, UINT uMessage, WPARAM wParam, LPARAM lPar
         if ((HWND)lParam == GetDlgItem(hWindow, IDC_EDIT1)) {
             SetTextColor((HDC)wParam, RGB(255, 255, 0));
             return (LRESULT)(hBGColorSec);
+        }
+        else if ((HWND)lParam == GetDlgItem(hWindow, IDC_LABEL4)) {
+            SetTextColor((HDC)wParam, RGB(140, 140, 255));
+            return (LRESULT)(hBGColorPrim);
+        }
+        else if ((HWND)lParam == GetDlgItem(hWindow, IDC_LABEL5)) {
+            SetTextColor((HDC)wParam, RGB(255, 140, 140));
+            return (LRESULT)(hBGColorPrim);
         }
         else {
             SetTextColor((HDC)wParam, RGB(255, 255, 255));
@@ -157,11 +190,6 @@ LRESULT CALLBACK WNDProc(HWND hWindow, UINT uMessage, WPARAM wParam, LPARAM lPar
         else goto execute;
 
         return (LRESULT)(hBGColorSec);
-
-    case WM_CHAR:
-        if (LOWORD(wParam) == VK_TAB)
-            SetFocus(GetNextDlgTabItem(hWindow, NULL, FALSE));
-        break;
 
     case WM_NOTIFY: {
         LPNMHDR nmHeader = (LPNMHDR)lParam;
@@ -216,7 +244,7 @@ LRESULT CALLBACK WNDProc(HWND hWindow, UINT uMessage, WPARAM wParam, LPARAM lPar
                     break;
 
                 default:
-                    goto execute;
+                    return CDRF_DODEFAULT;
             }
 
             SetBkMode(item->hdc, TRANSPARENT);
@@ -273,6 +301,17 @@ LRESULT CALLBACK WNDProc(HWND hWindow, UINT uMessage, WPARAM wParam, LPARAM lPar
                 break;
             }
 
+            case IDC_LABEL4: {
+                switch (HIWORD(wParam)) {
+                case STN_CLICKED:
+                    ShellExecuteW(hWindow, L"open", pWebsite, nullptr, nullptr, SW_SHOWNORMAL);
+
+                    break;
+                }
+
+                break;
+            }
+
             case IDC_BUTTON1: {
                 ShellExecuteW(hWindow, L"open", pAboutLink, nullptr, nullptr, SW_SHOWNORMAL); 
                 
@@ -291,7 +330,7 @@ LRESULT CALLBACK WNDProc(HWND hWindow, UINT uMessage, WPARAM wParam, LPARAM lPar
 
                 int pSSection = 0;
 
-                for (int i = 0; i < 6; i++)
+                for (int i = 0; i < wcslen(pCSection); i++)
                     pSSection -= pCSection[i] - '0';
 
                 while (pSSection < 0)
@@ -335,10 +374,21 @@ LRESULT CALLBACK WNDProc(HWND hWindow, UINT uMessage, WPARAM wParam, LPARAM lPar
 
             case IDC_BUTTON3: {
                 DestroyWindow(hWindow);
+
                 return 0;
             }
 
             case IDC_BUTTON4: {
+                ul32 msDigits = randomRange(0, 999),
+                     lsDigits = randomRange(0, 999'999);
+
+                WCHAR pBSection[4]{}, pCSection[8]{};
+
+                wsprintfW(pBSection, L"%03d", msDigits);
+                wsprintfW(pCSection, L"%06d", lsDigits);
+
+                SendMessageW(GetDlgItem(hMainWindow, IDC_INPUT1), WM_SETTEXT, 0, (LPARAM)pBSection);
+                SendMessageW(GetDlgItem(hMainWindow, IDC_INPUT2), WM_SETTEXT, 0, (LPARAM)pCSection);
 
                 break;
             }
@@ -393,6 +443,31 @@ LRESULT CALLBACK WNDProc(HWND hWindow, UINT uMessage, WPARAM wParam, LPARAM lPar
     return 0;
 }
 
+void InitializeFonts(HFONT *hLabelFont, HFONT *hSmolFont, HFONT *hBoldFont, HFONT *hCaptionFont) {
+    NONCLIENTMETRICSW nonClientMetrics;
+
+    // Get information about the default system font.
+    nonClientMetrics.cbSize = sizeof(NONCLIENTMETRICSW);
+    SystemParametersInfoW(SPI_GETNONCLIENTMETRICS, sizeof(NONCLIENTMETRICSW), &nonClientMetrics, 0);
+
+    ULONG defaultHeight = nonClientMetrics.lfMessageFont.lfHeight;
+
+    // Create default font.
+    *hLabelFont = CreateFontIndirectW(&nonClientMetrics.lfMessageFont);
+
+    // Create smol font.
+    nonClientMetrics.lfMessageFont.lfHeight = 12;
+    *hSmolFont = CreateFontIndirectW(&nonClientMetrics.lfMessageFont);
+
+    // Create bold font.
+    nonClientMetrics.lfMessageFont.lfWeight = 700;
+    nonClientMetrics.lfMessageFont.lfHeight = defaultHeight;
+    *hBoldFont = CreateFontIndirectW(&nonClientMetrics.lfMessageFont);
+
+    // Create caption font.
+    nonClientMetrics.lfMessageFont.lfHeight = 30;
+    *hCaptionFont = CreateFontIndirectW(&nonClientMetrics.lfMessageFont);
+}
 
 bool InitializeWindow(HINSTANCE hInstance) {
     HFONT   hLabelFont,
@@ -419,7 +494,7 @@ bool InitializeWindow(HINSTANCE hInstance) {
     InitializeFonts(&hLabelFont, &hSmolFont, &hBoldFont, &hCaptionFont);
 
     const int   w = 615,
-                h = 480,
+                h = 495,
                 x = (GetSystemMetrics(SM_CXSCREEN) - w) / 2,
                 y = (GetSystemMetrics(SM_CYSCREEN) - h) / 2;
 
@@ -624,7 +699,7 @@ bool InitializeWindow(HINSTANCE hInstance) {
         ES_MULTILINE | ES_READONLY |
         ES_LEFT | ES_UPPERCASE,
         20, 250,
-        w - 57, h - 350,
+        w - 57, h - 360,
         hMainWindow,
         (HMENU)IDC_EDIT1,
         hInstance,
@@ -639,7 +714,7 @@ bool InitializeWindow(HINSTANCE hInstance) {
         L"About",
         WS_CHILD | WS_VISIBLE | WS_TABSTOP |
         BS_PUSHBUTTON,
-        44, h - 90,
+        44, h - 102,
         100, 27,
         hMainWindow,
         (HMENU)IDC_BUTTON1,
@@ -655,7 +730,7 @@ bool InitializeWindow(HINSTANCE hInstance) {
         L"Generate",
         WS_CHILD | WS_VISIBLE | WS_TABSTOP |
         BS_PUSHBUTTON,
-        250, h - 90,
+        250, h - 102,
         100, 27,
         hMainWindow,
         (HMENU)IDC_BUTTON2,
@@ -671,7 +746,7 @@ bool InitializeWindow(HINSTANCE hInstance) {
         L"Quit",
         WS_CHILD | WS_VISIBLE | WS_TABSTOP |
         BS_PUSHBUTTON,
-        w - 160, h - 90,
+        w - 160, h - 102,
         100, 27,
         hMainWindow,
         (HMENU)IDC_BUTTON3,
@@ -681,6 +756,42 @@ bool InitializeWindow(HINSTANCE hInstance) {
 
     SendMessageW(hQuit, WM_SETFONT, (WPARAM)hLabelFont, 0);
     
+    const WCHAR *pVersion = L"2.1";
+
+    WCHAR pVersionString[256]{};
+
+    wsprintfW(pVersionString, L"v%s • %s", pVersion, pWebsite);
+
+    HWND hVersion = CreateWindowExW(
+        0,
+        L"Static",
+        pVersionString,
+        WS_CHILD | WS_VISIBLE |
+        SS_NOTIFY,
+        10, 436,
+        170, 16,
+        hMainWindow, (HMENU)IDC_LABEL4,
+        hInstance, nullptr
+    );
+
+    SetWindowSubclass(hVersion, StaticLinkProc, IDC_LABEL4, 0);
+
+    SendMessageW(hVersion, WM_SETFONT, (WPARAM)hSmolFont, 0);
+    SendMessageW(hVersion, WM_APP + IDC_LABEL4, 0, 0);
+
+    HWND hMotto = CreateWindowExW(
+        0,
+        L"Static",
+        L"we keep on downloading ◄ 11/04/2023",
+        WS_CHILD | WS_VISIBLE,
+        w - (170 + 15), 436,
+        170, 16,
+        hMainWindow, (HMENU)IDC_LABEL5,
+        hInstance, nullptr
+    );
+
+    SendMessageW(hMotto, WM_SETFONT, (WPARAM)hSmolFont, 0);
+
     ShowWindow(hMainWindow, SW_SHOW);
     UpdateWindow(hMainWindow);
 

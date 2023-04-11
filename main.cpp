@@ -6,6 +6,7 @@
 #include "header.h"
 
 HANDLE hConsole;
+ul32 dwSeed;
 byte charset[] = "BCDFGHJKMPQRTVWXY2346789";
 
 int mainServer() {
@@ -143,11 +144,11 @@ int main() {
 
     hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 
+    srand(GetTickCount64());
+
     HINSTANCE hInstance = GetModuleHandleW(nullptr);
 
     int p = InitializeWindow(hInstance);
-
-    SetConsoleTitleA("Windows XP VLK Keygen");
 
     system("cls");
     cprintf("Windows XP VLK Keygen\n\n", 0x08);
@@ -173,6 +174,4 @@ int main() {
     printf("\t2. Hash = (First32Bits(SHA1(pRaw, r.x, r.y)) >> 4.\n");
     printf("\t3. Signature = privateKey * Hash + (C %% Order)\n");
     printf("Finally, we pack these components together, convert them to Base24 and get a valid Windows XP key.\n");
-
-    cprintf("Input Raw Product Key BBB-CCCCCC WITHOUT DASHES in range [100-000000; 999-999999]: ", 0x0E);
 }

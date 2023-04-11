@@ -4,7 +4,7 @@
 
 #include "header.h"
 
-/* Colored output */
+/* Colored output. */
 void cprintf(const char *Format, int nColor, ...) {
     va_list vList;
 
@@ -26,6 +26,7 @@ void endiannessConvert(byte *data, int length) {
     }
 }
 
+/* Initializes the elliptic curve. */
 EC_GROUP *initializeEllipticCurve(
         const char *pSel,
         long aSel,
@@ -65,6 +66,8 @@ EC_GROUP *initializeEllipticCurve(
     // Context variable
     context = BN_CTX_new();
 
+    
+
     /* Public data */
     BN_hex2bn(&p, pSel);
     BN_set_word(a, aSel);
@@ -96,4 +99,9 @@ EC_GROUP *initializeEllipticCurve(
     BN_CTX_free(context);
 
     return eCurve;
+}
+
+/* Generates a random 32-bit integer in range. */
+ul32 randomRange(ul32 dwLow, ul32 dwHigh) {
+    return rand() % (dwHigh - dwLow) + dwLow;
 }
