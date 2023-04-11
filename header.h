@@ -40,6 +40,10 @@
 
 #define IDC_IMAGE1  1050
 
+#define IDC_LABEL1  1055
+#define IDC_LABEL2  1056
+#define IDC_LABEL3  1057
+
 typedef unsigned long ul32;
 
 extern HANDLE hConsole;

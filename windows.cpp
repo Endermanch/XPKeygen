@@ -59,28 +59,220 @@ bool PlayAudio(HINSTANCE hInstance, WCHAR *lpName, UINT bFlags) {
 }
 
 LRESULT CALLBACK WNDProc(HWND hWindow, UINT uMessage, WPARAM wParam, LPARAM lParam) {
+    static HBRUSH   hBGColorPrim, hBGColorSec, hFGColor, hBtnDefault,
+                    hBtn1Select, hBtn1Hot,
+                    hBtn2Select, hBtn2Hot,
+                    hBtn3Select, hBtn3Hot,
+                    hBtn4Select, hBtn4Hot;
+
+    static HPEN     hFrameColor, hFramePrim, hBtnDefaultP,
+                    hBtn1SelectP, hBtn1HotP,
+                    hBtn2SelectP, hBtn2HotP,
+                    hBtn3SelectP, hBtn3HotP,
+                    hBtn4SelectP, hBtn4HotP;
+    static HDC      hMainDC;
 
     switch (uMessage) {
     case WM_CREATE:
+        hMainDC = GetDC(hWindow);
+
+        hFrameColor = CreatePen(PS_SOLID, 1, RGB(240, 240, 240));
+        hFramePrim = CreatePen(PS_SOLID, 1, RGB(10, 10, 10));
+
+        hBGColorPrim = CreateSolidBrush(RGB(10, 10, 10));
+        hBGColorSec = (HBRUSH)(GetStockObject(BLACK_BRUSH));
+        hFGColor = (HBRUSH)GetStockObject(WHITE_BRUSH);
+
+        // yellow, blue, red, green
+        hBtnDefaultP = CreatePen(PS_SOLID, 1, RGB(0, 0, 0));
+
+        hBtn1SelectP = CreatePen(PS_SOLID, 1, RGB(160, 160, 0));
+        hBtn1HotP = CreatePen(PS_SOLID, 1, RGB(80, 80, 0));
+        
+        hBtn2SelectP = CreatePen(PS_SOLID, 1, RGB(0, 0, 160));
+        hBtn2HotP = CreatePen(PS_SOLID, 1, RGB(0, 0, 80));
+
+        hBtn3SelectP = CreatePen(PS_SOLID, 1, RGB(160, 0, 0));
+        hBtn3HotP = CreatePen(PS_SOLID, 1, RGB(80, 0, 0));
+
+        hBtn4SelectP = CreatePen(PS_SOLID, 1, RGB(0, 160, 0));
+        hBtn4HotP = CreatePen(PS_SOLID, 1, RGB(0, 80, 0));
+
+        hBtnDefault = CreateSolidBrush(RGB(30, 30, 30));
+
+        hBtn1Select = CreateSolidBrush(RGB(70, 70, 30));
+        hBtn1Hot = CreateSolidBrush(RGB(40, 40, 30));
+
+        hBtn2Select = CreateSolidBrush(RGB(30, 30, 70));
+        hBtn2Hot = CreateSolidBrush(RGB(30, 30, 40));
+
+        hBtn3Select = CreateSolidBrush(RGB(70, 30, 30));
+        hBtn3Hot = CreateSolidBrush(RGB(40, 30, 30));
+
+        hBtn4Hot = CreateSolidBrush(RGB(30, 40, 30));
+        hBtn4Select = CreateSolidBrush(RGB(30, 70, 30));
+
         break;
 
+    case WM_PAINT: {
+        RECT rGroup = {
+            10,
+            165,
+            589,
+            430
+        };
+
+        SelectObject(hMainDC, hFrameColor);
+        SelectObject(hMainDC, GetStockObject(HOLLOW_BRUSH));
+
+        RoundRect(hMainDC, 10, 165, 589, 430, 12, 12);
+        InvalidateRect(GetDlgItem(hWindow, IDC_LABEL1), nullptr, true);
+
+        goto execute;
+    }
+
     case WM_CTLCOLORSTATIC:
+        SetBkMode((HDC)wParam, TRANSPARENT);
+
         if ((HWND)lParam == GetDlgItem(hWindow, IDC_EDIT1)) {
-            SetBkMode((HDC)wParam, TRANSPARENT);
             SetTextColor((HDC)wParam, RGB(255, 255, 0));
-            return (LRESULT)((HBRUSH)GetStockObject(BLACK_BRUSH));
+            return (LRESULT)(hBGColorSec);
+        }
+        else {
+            SetTextColor((HDC)wParam, RGB(255, 255, 255));
+            return (LRESULT)(hBGColorPrim);
+        }
+        
+        break;
+
+    case WM_CTLCOLOREDIT:
+        SetBkMode((HDC)wParam, TRANSPARENT);
+
+        if ((HWND)lParam == GetDlgItem(hWindow, IDC_INPUT1)) {
+            SetTextColor((HDC)wParam, RGB(255, 140, 140));
+        }
+        else if ((HWND)lParam == GetDlgItem(hWindow, IDC_INPUT2)) {
+            SetTextColor((HDC)wParam, RGB(140, 140, 255));
         }
         else goto execute;
 
-        break;
+        return (LRESULT)(hBGColorSec);
 
     case WM_CHAR:
         if (LOWORD(wParam) == VK_TAB)
             SetFocus(GetNextDlgTabItem(hWindow, NULL, FALSE));
         break;
 
+    case WM_NOTIFY: {
+        LPNMHDR nmHeader = (LPNMHDR)lParam;
+
+        if (nmHeader->code == NM_CUSTOMDRAW) {
+            LPNMCUSTOMDRAW item = (LPNMCUSTOMDRAW)nmHeader;
+
+            HBRUSH hBtnXSelect, hBtnXHot;
+            HPEN hBtnXSelectP, hBtnXHotP;
+            
+            CONST WCHAR *pCaption = L"Unknown";
+            
+            switch (nmHeader->idFrom) {
+                case IDC_BUTTON1:
+                    pCaption = L"About";
+
+                    hBtnXSelect = hBtn1Select;
+                    hBtnXHot = hBtn1Hot;
+                    hBtnXSelectP = hBtn1SelectP;
+                    hBtnXHotP = hBtn1HotP;
+
+                    break;
+                
+                case IDC_BUTTON2:
+                    pCaption = L"> Generate <";
+
+                    hBtnXSelect = hBtn2Select;
+                    hBtnXHot = hBtn2Hot;
+                    hBtnXSelectP = hBtn2SelectP;
+                    hBtnXHotP = hBtn2HotP;
+
+                    break;
+
+                case IDC_BUTTON3:
+                    pCaption = L"Quit";
+
+                    hBtnXSelect = hBtn3Select;
+                    hBtnXHot = hBtn3Hot;
+                    hBtnXSelectP = hBtn3SelectP;
+                    hBtnXHotP = hBtn3HotP;
+
+                    break;
+
+                case IDC_BUTTON4:
+                    pCaption = L"Random";
+
+                    hBtnXSelect = hBtn4Select;
+                    hBtnXHot = hBtn4Hot;
+                    hBtnXSelectP = hBtn4SelectP;
+                    hBtnXHotP = hBtn4HotP;
+
+                    break;
+
+                default:
+                    goto execute;
+            }
+
+            SetBkMode(item->hdc, TRANSPARENT);
+            SetTextColor(item->hdc, RGB(255, 255, 255));
+
+            SelectObject(item->hdc, hFramePrim);
+            SelectObject(item->hdc, hBGColorPrim);
+
+            Rectangle(item->hdc, item->rc.left, item->rc.top, item->rc.right, item->rc.bottom);
+
+            if (item->uItemState & CDIS_SELECTED) {
+                SelectObject(item->hdc, hBtnXSelectP);
+                SelectObject(item->hdc, hBtnXSelect);
+            }
+            else if (item->uItemState & CDIS_HOT) {
+                SelectObject(item->hdc, hBtnXHotP);
+                SelectObject(item->hdc, hBtnXHot);
+            }
+            else {
+                SelectObject(item->hdc, hBtnDefaultP);
+                SelectObject(item->hdc, hBtnDefault);
+            }
+
+            RoundRect(item->hdc, item->rc.left, item->rc.top, item->rc.right, item->rc.bottom, 12, 12);
+            DrawTextW(item->hdc, pCaption, -1, &item->rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+
+            return CDRF_SKIPDEFAULT;
+        }
+        
+        return CDRF_DODEFAULT;
+    }
+
     case WM_COMMAND:
         switch (LOWORD(wParam)) {
+            case IDC_LABEL2: {
+                switch (HIWORD(wParam)) {
+                    case STN_CLICKED:
+                        CheckRadioButton(hWindow, IDC_RADIO1, IDC_RADIO2, IDC_RADIO1);
+
+                        break;
+                }
+
+                break;
+            }
+
+            case IDC_LABEL3: {
+                switch (HIWORD(wParam)) {
+                    case STN_CLICKED:
+                        CheckRadioButton(hWindow, IDC_RADIO1, IDC_RADIO2, IDC_RADIO2);
+
+                        break;
+                }
+
+                break;
+            }
+
             case IDC_BUTTON1: {
                 ShellExecuteW(hWindow, L"open", pAboutLink, nullptr, nullptr, SW_SHOWNORMAL); 
                 
@@ -161,6 +353,35 @@ LRESULT CALLBACK WNDProc(HWND hWindow, UINT uMessage, WPARAM wParam, LPARAM lPar
         break;
 
     case WM_DESTROY:
+        DeleteObject(hBGColorPrim);
+
+        DeleteObject(hBtn1Select);
+        DeleteObject(hBtn1Hot);
+        DeleteObject(hBtn2Select);
+        DeleteObject(hBtn2Hot);
+        DeleteObject(hBtn3Select);
+        DeleteObject(hBtn3Hot);
+        DeleteObject(hBtn4Select);
+        DeleteObject(hBtn4Hot);
+
+        DeleteObject(hBtnDefault);
+
+        DeleteObject(hBtn1SelectP);
+        DeleteObject(hBtn1HotP);
+        DeleteObject(hBtn2SelectP);
+        DeleteObject(hBtn2HotP);
+        DeleteObject(hBtn3SelectP);
+        DeleteObject(hBtn3HotP);
+        DeleteObject(hBtn4SelectP);
+        DeleteObject(hBtn4HotP);
+
+        DeleteObject(hBtnDefaultP);
+
+        DeleteObject(hFrameColor);
+        DeleteObject(hFramePrim);
+
+        ReleaseDC(hWindow, hMainDC);
+
         PostQuitMessage(0);
         break;
 
@@ -186,7 +407,7 @@ bool InitializeWindow(HINSTANCE hInstance) {
     wndClass.hInstance = hInstance;
     wndClass.lpfnWndProc = (WNDPROC)WNDProc;
     wndClass.lpszClassName = L"XPKeygen";
-    wndClass.hbrBackground = (HBRUSH)COLOR_WINDOW;
+    wndClass.hbrBackground = (HBRUSH)CreateSolidBrush(RGB(10, 10, 10));
     wndClass.style = CS_HREDRAW | CS_VREDRAW;
     wndClass.hIcon = LoadIconW(nullptr, MAKEINTRESOURCEW(IDI_ICON1));
     wndClass.hIconSm = LoadIconW(hInstance, MAKEINTRESOURCEW(IDI_ICON1));
@@ -237,12 +458,12 @@ bool InitializeWindow(HINSTANCE hInstance) {
 
     HWND hGroupBox = CreateWindowExW(
         0,
-        L"Button", L"Windows XP Pro VLK x86 // Server 2003 + SP2 x64",
+        L"Static", L"Windows XP Pro VLK x86 // Server 2003 + SP2 x64",
         WS_CHILD | WS_VISIBLE |
-        BS_GROUPBOX,
-        10, 150,
-        w - 36, h - 200,
-        hMainWindow, nullptr,
+        SS_CENTER,
+        42, 150,
+        515, 32,
+        hMainWindow, (HMENU)IDC_LABEL1,
         hInstance, nullptr
     );
 
@@ -340,11 +561,11 @@ bool InitializeWindow(HINSTANCE hInstance) {
     HWND hRadio1 = CreateWindowExW(
         WS_EX_WINDOWEDGE,
         L"Button",
-        L"Windows XP VLK",
-        WS_VISIBLE | WS_CHILD | WS_GROUP |
+        L"",
+        WS_VISIBLE | WS_CHILD | WS_GROUP | WS_TABSTOP |
         BS_AUTORADIOBUTTON,
         70, 219,
-        120, 20,
+        17, 20,
         hMainWindow,
         (HMENU)IDC_RADIO1,
         hInstance, NULL
@@ -353,19 +574,47 @@ bool InitializeWindow(HINSTANCE hInstance) {
     SendMessageW(hRadio1, BM_SETCHECK, 1, 0);
     SendMessageW(hRadio1, WM_SETFONT, (WPARAM)hLabelFont, 0);
 
+    HWND hRadioLabel1 = CreateWindowExW(
+        0,
+        L"Static",
+        L"Windows XP VLK",
+        WS_CHILD | WS_VISIBLE |
+        SS_NOTIFY,
+        89, 221,
+        90, 16,
+        hMainWindow, (HMENU)IDC_LABEL2,
+        hInstance, nullptr
+    );
+
+    SendMessageW(hRadioLabel1, WM_SETFONT, (WPARAM)hLabelFont, 0);
+
     HWND hRadio2 = CreateWindowExW(
         WS_EX_WINDOWEDGE,
         L"Button",
-        L"Windows Server 2003 / SP2 x64",
-        WS_VISIBLE | WS_CHILD |
+        L"",
+        WS_VISIBLE | WS_CHILD | WS_TABSTOP |
         BS_AUTORADIOBUTTON,
         200, 219,
-        180, 20,
+        17, 20,
         hMainWindow,
         (HMENU)IDC_RADIO2,
         hInstance, NULL);
 
     SendMessageW(hRadio2, WM_SETFONT, (WPARAM)hLabelFont, 0);
+
+    HWND hRadioLabel2 = CreateWindowExW(
+        0,
+        L"Static",
+        L"Windows Server 2003 / SP2 x64",
+        WS_CHILD | WS_VISIBLE |
+        SS_NOTIFY,
+        218, 221,
+        170, 16,
+        hMainWindow, (HMENU)IDC_LABEL3,
+        hInstance, nullptr
+    );
+
+    SendMessageW(hRadioLabel2, WM_SETFONT, (WPARAM)hLabelFont, 0);
 
     HWND hEdit = CreateWindowExW(
         0,
@@ -388,7 +637,8 @@ bool InitializeWindow(HINSTANCE hInstance) {
         0,
         L"Button",
         L"About",
-        WS_CHILD | WS_VISIBLE | WS_TABSTOP,
+        WS_CHILD | WS_VISIBLE | WS_TABSTOP |
+        BS_PUSHBUTTON,
         44, h - 90,
         100, 27,
         hMainWindow,
@@ -419,7 +669,8 @@ bool InitializeWindow(HINSTANCE hInstance) {
         0,
         L"Button",
         L"Quit",
-        WS_CHILD | WS_VISIBLE | WS_TABSTOP,
+        WS_CHILD | WS_VISIBLE | WS_TABSTOP |
+        BS_PUSHBUTTON,
         w - 160, h - 90,
         100, 27,
         hMainWindow,
@@ -438,8 +689,10 @@ bool InitializeWindow(HINSTANCE hInstance) {
     MSG uMessage;
 
     while(GetMessageW(&uMessage, nullptr, 0, 0)) {
-        TranslateMessage(&uMessage);
-        DispatchMessageW(&uMessage);
+        if (!IsDialogMessageW(hMainWindow, &uMessage)) {
+            TranslateMessage(&uMessage);
+            DispatchMessageW(&uMessage);
+        }
     }
 
     ReleaseDC(hMainWindow, hMainDC);
