@@ -66,8 +66,6 @@ EC_GROUP *initializeEllipticCurve(
     // Context variable
     context = BN_CTX_new();
 
-    
-
     /* Public data */
     BN_hex2bn(&p, pSel);
     BN_set_word(a, aSel);

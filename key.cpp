@@ -5,7 +5,7 @@
 #include "header.h"
 
 /* Convert from byte sequence to the CD-key. */
-void base24(byte *cdKey, ul32 *byteSeq) {
+void base24(char *cdKey, ul32 *byteSeq) {
     byte rbs[16];
     BIGNUM *z;
 
@@ -31,39 +31,51 @@ void base24(byte *cdKey, ul32 *byteSeq) {
 }
 
 /* Convert from CD-key to a byte sequence. */
-void unbase24(ul32 *byteSeq, byte *cdKey) {
+void unbase24(ul32 *byteSeq, const char *cdKey) {
+    byte pDecodedKey[PK_LENGTH + NULL_TERMINATOR]{};
     BIGNUM *y = BN_new();
+
     BN_zero(y);
+
+    // Remove dashes from the CD-key and put it into a Base24 byte array.
+    for (int i = 0, k = 0; i < strlen(cdKey) && k < PK_LENGTH; i++) {
+        for (int j = 0; j < 24; j++) {
+            if (cdKey[i] != '-' && cdKey[i] == charset[j]) {
+                pDecodedKey[k++] = j;
+                break;
+            }
+        }
+    }
 
     // Empty byte sequence.
     memset(byteSeq, 0, 16);
 
-    // For each character in product key, place its ASCII-code.
-    for (int i = 0; i < 25; i++) {
-        BN_mul_word(y, 24);
-        BN_add_word(y, cdKey[i]);
+    // Calculate the weighed sum of byte array elements.
+    for (int i = 0; i < PK_LENGTH; i++) {
+        BN_mul_word(y, PK_LENGTH - 1);
+        BN_add_word(y, pDecodedKey[i]);
     }
 
     // Acquire length.
     int n = BN_num_bytes(y);
 
     // Place the generated code into the byte sequence.
-    BN_bn2bin(y, (unsigned char *)byteSeq);
+    BN_bn2bin(y, (byte *)byteSeq);
     BN_free(y);
 
     // Reverse the byte sequence.
-    endiannessConvert((unsigned char *) byteSeq, n);
+    endiannessConvert((byte *) byteSeq, n);
 }
 
 /* Print Product Key. */
 void printProductKey(const char *pKey) {
-    assert(strlen((const char *)pKey) == 25);
+    assert(strlen(pKey) == 25);
 
     SetConsoleTextAttribute(hConsole, 0x0A);
 
-    for (int i = 0; i < 25; i++) {
+    for (int i = 0; i < PK_LENGTH; i++) {
         putchar(pKey[i]);
-        if (i != 24 && i % 5 == 4) putchar('-');
+        if (i != PK_LENGTH - 1 && i % 5 == 4) putchar('-');
     }
 
     SetConsoleTextAttribute(hConsole, 0x0F);

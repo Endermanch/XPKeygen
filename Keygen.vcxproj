@@ -171,6 +171,8 @@
     <Image Include="resources\ender.bmp" />
     <Image Include="resources\icon.ico" />
     <Image Include="resources\logo.bmp" />
+    <Image Include="resources\musicoff.bmp" />
+    <Image Include="resources\musicon.bmp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

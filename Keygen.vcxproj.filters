@@ -45,5 +45,7 @@
     <Image Include="resources\icon.ico" />
     <Image Include="resources\ender.bmp" />
     <Image Include="resources\logo.bmp" />
+    <Image Include="resources\musicon.bmp" />
+    <Image Include="resources\musicoff.bmp" />
   </ItemGroup>
 </Project>

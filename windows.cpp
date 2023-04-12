@@ -14,7 +14,88 @@
 HWND hMainWindow;
 
 const WCHAR *pAboutLink = L"https://github.com/Endermanch/XPKeygen",
-            *pWebsite = L"https://malwarewatch.org";
+            *pWebsite = L"https://malwarewatch.org",
+            *pVersion = L"2.2";
+
+bool bServer = false,
+     bMusic = true;
+
+void formatXP(WCHAR *pBSection, WCHAR *pCSection, WCHAR *pText) {
+    WCHAR pFPK[32]{};
+
+    int pSSection = 0;
+
+    for (int i = 0; i < wcslen(pCSection); i++)
+        pSSection -= pCSection[i] - '0';
+
+    while (pSSection < 0)
+        pSSection += 7;
+
+    char pKey[PK_LENGTH + NULL_TERMINATOR]{};
+    ul32 msDigits = _wtoi(pBSection),
+         lsDigits = _wtoi(pCSection);
+
+    ul32 nRPK = msDigits * 1'000'000 + lsDigits,
+         hash = 0,
+         bKey[4]{},
+         bSig[2]{};
+
+    bool bValid = keyXP(pKey, nRPK);
+
+    unbase24(bKey, pKey);
+    unpackXP(nullptr, &hash, bSig, bKey);
+
+    for (int i = 0; i < 5; i++)
+        wsprintfW(pFPK, L"%s%s%.5S", pFPK, i != 0 ? L"-" : L"", &pKey[5 * i]);
+
+    wsprintfW(
+        pText,
+        L"Product ID:\tPPPPP-%03d-%06d%d-23XXX\r\n\r\nBytecode:\t%08lX %08lX %08lX %08lX\r\nHash:\t\t%08lX\r\nSignature:\t%08lX %08lX\r\nCurve Point:\t%s\r\n\r\n%s\r\n",
+        nRPK / 1'000'000,
+        nRPK % 1'000'000,
+        pSSection,
+        bKey[3], bKey[2], bKey[1], bKey[0],
+        hash,
+        bSig[1], bSig[0],
+        bValid ? L"True" : L"False",
+        pFPK
+    );
+}
+
+void formatServer(WCHAR *pText) {
+    WCHAR pFPK[32]{};
+    
+    char pKey[PK_LENGTH + NULL_TERMINATOR]{};
+    ul32 hash = 0,
+         osFamily = 0,
+         prefix = 0,
+         bKey[4]{},
+         bSig[2]{};
+
+    bool bValid = keyServer(pKey);
+
+    unbase24(bKey, pKey);
+    unpackServer(&osFamily, &hash, bSig, &prefix, bKey);
+
+    for (int i = 0; i < 5; i++)
+        wsprintfW(pFPK, L"%s%s%.5S", pFPK, i != 0 ? L"-" : L"", &pKey[5 * i]);
+
+    wsprintfW(
+        pText,
+        L"Bytecode:\t%08lX %08lX %08lX %08lX\r\nOS Family:\t%d\r\nHash:\t\t%08lX\r\nSignature:\t%08lX %08lX\r\nPrefix:\t\t%04lX\r\nCurve Point:\t%s\r\n\r\n%s\r\n",
+        bKey[3], bKey[2], bKey[1], bKey[0],
+        osFamily,
+        hash,
+        bSig[1], bSig[0],
+        prefix,
+        bValid ? L"True" : L"False",
+        pFPK
+    );
+}
+
+void StopAudio() {
+    PlaySoundW(nullptr, nullptr, 0);
+}
 
 bool PlayAudio(HINSTANCE hInstance, WCHAR *lpName, UINT bFlags) {
     HANDLE hResInfo = FindResourceW(hInstance, lpName, L"WAVE");
@@ -33,8 +114,8 @@ bool PlayAudio(HINSTANCE hInstance, WCHAR *lpName, UINT bFlags) {
     return sndPlaySoundW(lpRes, SND_MEMORY | bFlags);
 }
 
-/* Static link processor. */
-LRESULT StaticLinkProc(HWND hWindow, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData) {
+/* Bitmap link processor. */
+LRESULT BitmapLinkProc(HWND hWindow, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData) {
     static TRACKMOUSEEVENT  trackMouse;
     static BOOL             isSet = FALSE;
 
@@ -42,7 +123,7 @@ LRESULT StaticLinkProc(HWND hWindow, UINT uMsg, WPARAM wParam, LPARAM lParam, UI
     switch (uMsg) {
 
         // Set the struct up outside of a frequently executed message to speed things up.
-        case WM_APP + IDC_LABEL4: {
+        case WM_APP + 0x69: {
             trackMouse.cbSize = sizeof(TRACKMOUSEEVENT);
             trackMouse.dwFlags = TME_LEAVE;
             trackMouse.dwHoverTime = HOVER_DEFAULT;
@@ -58,7 +139,7 @@ LRESULT StaticLinkProc(HWND hWindow, UINT uMsg, WPARAM wParam, LPARAM lParam, UI
         case WM_MOUSEMOVE: {
             if (!isSet) {
                 TrackMouseEvent(&trackMouse);
-                SetCursor(LoadCursorW(NULL, IDC_HAND));
+                SetCursor(LoadCursorW(nullptr, IDC_HAND));
 
                 isSet = TRUE;
             }
@@ -69,7 +150,7 @@ LRESULT StaticLinkProc(HWND hWindow, UINT uMsg, WPARAM wParam, LPARAM lParam, UI
         // Set cursor back to normal if it's outside of static area.
         case WM_MOUSELEAVE: {
             if (isSet) {
-                SetCursor(LoadCursorW(NULL, IDC_ARROW));
+                SetCursor(LoadCursorW(nullptr, IDC_ARROW));
                 isSet = FALSE;
             }
 
@@ -78,7 +159,64 @@ LRESULT StaticLinkProc(HWND hWindow, UINT uMsg, WPARAM wParam, LPARAM lParam, UI
 
         // Remove the subclass before window closes.
         case WM_NCDESTROY: {
-            RemoveWindowSubclass(hWindow, StaticLinkProc, 1);
+            RemoveWindowSubclass(hWindow, BitmapLinkProc, uIdSubclass);
+
+            break;
+        }
+
+        // Pass everything else to DefWndProc.
+        default: return DefSubclassProc(hWindow, uMsg, wParam, lParam);
+    }
+
+    return 0;
+}
+
+/* Static link processor. */
+LRESULT StaticLinkProc(HWND hWindow, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData) {
+    static TRACKMOUSEEVENT  trackMouse;
+    static BOOL             isSet = FALSE;
+
+    // The worst part here was to avoid pointer flickering, as well as spamming the SetCursor function.
+    switch (uMsg) {
+
+        // Set the struct up outside of a frequently executed message to speed things up.
+        case WM_APP + 0x69: {
+            trackMouse.cbSize = sizeof(TRACKMOUSEEVENT);
+            trackMouse.dwFlags = TME_LEAVE;
+            trackMouse.dwHoverTime = HOVER_DEFAULT;
+            trackMouse.hwndTrack = hWindow;
+
+            break;
+        }
+
+        // You have to turn off the WM_SETCURSOR, because it spams the SetCursor function with IDC_ARROW in the DefWndProc. Moist garbage.
+        case WM_SETCURSOR: break;
+
+        // Set cursor to hand if it's inside of static area, refresh the mouse tracking loop.
+        case WM_MOUSEMOVE: {
+            if (!isSet) {
+                TrackMouseEvent(&trackMouse);
+                SetCursor(LoadCursorW(nullptr, IDC_HAND));
+
+                isSet = TRUE;
+            }
+
+            break;
+        }
+
+        // Set cursor back to normal if it's outside of static area.
+        case WM_MOUSELEAVE: {
+            if (isSet) {
+                SetCursor(LoadCursorW(nullptr, IDC_ARROW));
+                isSet = FALSE;
+            }
+
+            break;
+        }
+
+        // Remove the subclass before window closes.
+        case WM_NCDESTROY: {
+            RemoveWindowSubclass(hWindow, StaticLinkProc, uIdSubclass);
 
             break;
         }
@@ -91,6 +229,8 @@ LRESULT StaticLinkProc(HWND hWindow, UINT uMsg, WPARAM wParam, LPARAM lParam, UI
 }
 
 LRESULT CALLBACK WNDProc(HWND hWindow, UINT uMessage, WPARAM wParam, LPARAM lParam) {
+    static HINSTANCE hInstance;
+
     static HBRUSH   hBGColorPrim, hBGColorSec, hFGColor, hBtnDefault,
                     hBtn1Select, hBtn1Hot,
                     hBtn2Select, hBtn2Hot,
@@ -102,11 +242,22 @@ LRESULT CALLBACK WNDProc(HWND hWindow, UINT uMessage, WPARAM wParam, LPARAM lPar
                     hBtn2SelectP, hBtn2HotP,
                     hBtn3SelectP, hBtn3HotP,
                     hBtn4SelectP, hBtn4HotP;
+
     static HDC      hMainDC;
+
+    static HBITMAP  hBMusicOn, hBMusicOff;
 
     switch (uMessage) {
     case WM_CREATE:
+        bMusic = true;
+
+        hInstance = ((LPCREATESTRUCT)(lParam))->hInstance;
         hMainDC = GetDC(hWindow);
+
+        PlayAudio(hInstance, MAKEINTRESOURCEW(IDR_WAVE1), SND_ASYNC | SND_LOOP | SND_NODEFAULT);
+
+        hBMusicOn = (HBITMAP)LoadImageW(hInstance, MAKEINTRESOURCEW(IDB_BITMAP3), IMAGE_BITMAP, 0, 0, 0);
+        hBMusicOff = (HBITMAP)LoadImageW(hInstance, MAKEINTRESOURCEW(IDB_BITMAP4), IMAGE_BITMAP, 0, 0, 0);
 
         hFrameColor = CreatePen(PS_SOLID, 1, RGB(240, 240, 240));
         hFramePrim = CreatePen(PS_SOLID, 1, RGB(10, 10, 10));
@@ -115,7 +266,6 @@ LRESULT CALLBACK WNDProc(HWND hWindow, UINT uMessage, WPARAM wParam, LPARAM lPar
         hBGColorSec = (HBRUSH)(GetStockObject(BLACK_BRUSH));
         hFGColor = (HBRUSH)GetStockObject(WHITE_BRUSH);
 
-        // yellow, blue, red, green
         hBtnDefaultP = CreatePen(PS_SOLID, 1, RGB(0, 0, 0));
 
         hBtn1SelectP = CreatePen(PS_SOLID, 1, RGB(160, 160, 0));
@@ -160,7 +310,11 @@ LRESULT CALLBACK WNDProc(HWND hWindow, UINT uMessage, WPARAM wParam, LPARAM lPar
         SetBkMode((HDC)wParam, TRANSPARENT);
 
         if ((HWND)lParam == GetDlgItem(hWindow, IDC_EDIT1)) {
-            SetTextColor((HDC)wParam, RGB(255, 255, 0));
+            if (bServer)
+                SetTextColor((HDC)wParam, RGB(30, 255, 30));
+            else
+                SetTextColor((HDC)wParam, RGB(255, 255, 0));
+
             return (LRESULT)(hBGColorSec);
         }
         else if ((HWND)lParam == GetDlgItem(hWindow, IDC_LABEL4)) {
@@ -279,6 +433,38 @@ LRESULT CALLBACK WNDProc(HWND hWindow, UINT uMessage, WPARAM wParam, LPARAM lPar
 
     case WM_COMMAND:
         switch (LOWORD(wParam)) {
+            case IDC_IMAGE2: {
+                switch (HIWORD(wParam)) {
+                    case STN_CLICKED:
+                        if (bMusic) {
+                            SendMessageW((HWND)lParam, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)hBMusicOff);
+                            StopAudio();
+
+                            bMusic = false;
+                        }
+                        else {
+                            SendMessageW((HWND)lParam, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)hBMusicOn);
+                            PlayAudio(hInstance, MAKEINTRESOURCEW(IDR_WAVE1), SND_ASYNC | SND_LOOP | SND_NODEFAULT);
+
+                            bMusic = true;
+                        }
+                        break;
+                    }
+
+                break;
+            }
+
+            case IDC_LABEL4: {
+                switch (HIWORD(wParam)) {
+                    case STN_CLICKED:
+                        ShellExecuteW(hWindow, L"open", pWebsite, nullptr, nullptr, SW_SHOWNORMAL);
+
+                        break;
+                }
+
+                break;
+            }
+
             case IDC_LABEL2: {
                 switch (HIWORD(wParam)) {
                     case STN_CLICKED:
@@ -287,8 +473,23 @@ LRESULT CALLBACK WNDProc(HWND hWindow, UINT uMessage, WPARAM wParam, LPARAM lPar
                         break;
                 }
 
-                break;
+                __fallthrough;
             }
+
+            case IDC_RADIO1: 
+                switch (HIWORD(wParam)) {
+                    case BN_CLICKED:
+                        EnableWindow(GetDlgItem(hMainWindow, IDC_BUTTON4), true);
+
+                        EnableWindow(GetDlgItem(hMainWindow, IDC_INPUT1), true);
+                        EnableWindow(GetDlgItem(hMainWindow, IDC_INPUT2), true);
+
+                        bServer = false;
+
+                        break;
+                }
+
+                break;
 
             case IDC_LABEL3: {
                 switch (HIWORD(wParam)) {
@@ -298,19 +499,23 @@ LRESULT CALLBACK WNDProc(HWND hWindow, UINT uMessage, WPARAM wParam, LPARAM lPar
                         break;
                 }
 
-                break;
+                __fallthrough;
             }
 
-            case IDC_LABEL4: {
+            case IDC_RADIO2:
                 switch (HIWORD(wParam)) {
-                case STN_CLICKED:
-                    ShellExecuteW(hWindow, L"open", pWebsite, nullptr, nullptr, SW_SHOWNORMAL);
+                case BN_CLICKED:
+                    EnableWindow(GetDlgItem(hMainWindow, IDC_BUTTON4), false);
+
+                    EnableWindow(GetDlgItem(hMainWindow, IDC_INPUT1), false);
+                    EnableWindow(GetDlgItem(hMainWindow, IDC_INPUT2), false);
+
+                    bServer = true;
 
                     break;
                 }
 
                 break;
-            }
 
             case IDC_BUTTON1: {
                 ShellExecuteW(hWindow, L"open", pAboutLink, nullptr, nullptr, SW_SHOWNORMAL); 
@@ -319,54 +524,24 @@ LRESULT CALLBACK WNDProc(HWND hWindow, UINT uMessage, WPARAM wParam, LPARAM lPar
             }
 
             case IDC_BUTTON2: {
-                HWND hEdit = GetDlgItem(hMainWindow, IDC_EDIT1);
-                HWND hInput1 = GetDlgItem(hMainWindow, IDC_INPUT1);
-                HWND hInput2 = GetDlgItem(hMainWindow, IDC_INPUT2);
+                WCHAR   *pText = (WCHAR *)calloc(512, sizeof(WCHAR));
+                HWND    hEdit = GetDlgItem(hMainWindow, IDC_EDIT1);
 
-                WCHAR pBSection[4]{}, pCSection[8]{}, pFPK[32]{};
+                if (bServer) {
+                    formatServer(pText);
+                }
+                else {
+                    WCHAR   pBSection[4]{}, pCSection[8]{};
+                    HWND    hInput1 = GetDlgItem(hMainWindow, IDC_INPUT1),
+                            hInput2 = GetDlgItem(hMainWindow, IDC_INPUT2);
 
-                SendMessageW(hInput1, WM_GETTEXT, 3 + NULL_TERMINATOR, (LPARAM)pBSection);
-                SendMessageW(hInput2, WM_GETTEXT, 6 + NULL_TERMINATOR, (LPARAM)pCSection);
+                    SendMessageW(hInput1, WM_GETTEXT, 3 + NULL_TERMINATOR, (LPARAM)pBSection);
+                    SendMessageW(hInput2, WM_GETTEXT, 6 + NULL_TERMINATOR, (LPARAM)pCSection);
 
-                int pSSection = 0;
-
-                for (int i = 0; i < wcslen(pCSection); i++)
-                    pSSection -= pCSection[i] - '0';
-
-                while (pSSection < 0)
-                    pSSection += 7;
-
-                ul32 msDigits = _wtoi(pBSection),
-                     lsDigits = _wtoi(pCSection);
-
-                ul32 nRPK = msDigits * 1'000'000 + lsDigits,
-                     hash = 0,
-                     sig[2]{};
-
-                CHAR pKey[PK_LENGTH + NULL_TERMINATOR]{};
-
-                keyXP(pKey, &hash, sig, nRPK);
-
-                for (int i = 0; i < 5; i++)
-                    wsprintfW(pFPK, L"%s%s%.5S", pFPK, i != 0 ? L"-" : L"", &pKey[5 * i]);
-
-                WCHAR *pText = (WCHAR *)calloc(512 + 4 + 9 + 5 * NULL_TERMINATOR, sizeof(WCHAR));
-
-                wsprintfW(
-                    pText,
-                    L"%s%sProduct ID: PPPPP-%03d-%06d%d-23XXX\r\nHash: %08lX\r\nSignature: %08lX-%08lX\r\n\r\n%s\r\n",
-                    pText,
-                    wcslen(pText) ? L"\r\n" : L"",
-                    nRPK / 1'000'000,
-                    nRPK % 1'000'000,
-                    pSSection,
-                    hash,
-                    sig[1], sig[0],
-                    pFPK
-                );            
+                    formatXP(pBSection, pCSection, pText);
+                }
 
                 SendMessageW(hEdit, WM_SETTEXT, 0, (LPARAM)pText);
-
                 free(pText);
 
                 return 0;
@@ -516,7 +691,7 @@ bool InitializeWindow(HINSTANCE hInstance) {
     // Select the default font.
     SelectObject(hMainDC, hLabelFont);
 
-    HBITMAP hBitmap = (HBITMAP)LoadImageW(hInstance, MAKEINTRESOURCEW(IDB_BITMAP2), IMAGE_BITMAP, 0, 0, 0);
+    HBITMAP hBLogo = (HBITMAP)LoadImageW(hInstance, MAKEINTRESOURCEW(IDB_BITMAP2), IMAGE_BITMAP, 0, 0, 0);
 
     HWND hLogo = CreateWindowExW(
         0,
@@ -529,7 +704,27 @@ bool InitializeWindow(HINSTANCE hInstance) {
         hInstance, nullptr
     );
 
-    SendMessageW(hLogo, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)hBitmap);
+    SendMessageW(hLogo, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)hBLogo);
+
+    HBITMAP hBMusicOn = (HBITMAP)LoadImageW(hInstance, MAKEINTRESOURCEW(IDB_BITMAP3), IMAGE_BITMAP, 0, 0, 0),
+            hBMusicOff = (HBITMAP)LoadImageW(hInstance, MAKEINTRESOURCEW(IDB_BITMAP4), IMAGE_BITMAP, 0, 0, 0);
+
+    HWND hMusic = CreateWindowExW(
+        0,
+        L"Static", nullptr,
+        WS_CHILD | WS_VISIBLE |
+        SS_BITMAP | SS_REALSIZECONTROL |
+        SS_NOTIFY,
+        w - 67, 180,
+        32, 32,
+        hMainWindow, (HMENU)IDC_IMAGE2,
+        hInstance, nullptr
+    );
+
+    SendMessageW(hMusic, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)hBMusicOn);
+
+    SetWindowSubclass(hMusic, BitmapLinkProc, IDC_IMAGE2, 0);
+    SendMessageW(hMusic, WM_APP + 0x69, 0, 0);
 
     HWND hGroupBox = CreateWindowExW(
         0,
@@ -571,6 +766,7 @@ bool InitializeWindow(HINSTANCE hInstance) {
     );
 
     SendMessageW(hInput1, EM_SETCUEBANNER, 0, (LPARAM)L"BBB");
+    SendMessageW(hInput1, WM_SETTEXT, 0, (LPARAM)L"640");
     SendMessageW(hInput1, WM_SETFONT, (WPARAM)hLabelFont, 0);
 
     SendMessageW(hInput1, EM_SETLIMITTEXT, (WPARAM)3, 0);
@@ -602,6 +798,7 @@ bool InitializeWindow(HINSTANCE hInstance) {
     );
 
     SendMessageW(hInput2, EM_SETCUEBANNER, 0, (LPARAM)L"CCCCCC");
+    SendMessageW(hInput2, WM_SETTEXT, 0, (LPARAM)L"883400");
     SendMessageW(hInput2, WM_SETFONT, (WPARAM)hLabelFont, 0);
 
     SendMessageW(hInput2, EM_SETLIMITTEXT, (WPARAM)6, 0);
@@ -643,7 +840,7 @@ bool InitializeWindow(HINSTANCE hInstance) {
         17, 20,
         hMainWindow,
         (HMENU)IDC_RADIO1,
-        hInstance, NULL
+        hInstance, nullptr
     );
 
     SendMessageW(hRadio1, BM_SETCHECK, 1, 0);
@@ -673,7 +870,7 @@ bool InitializeWindow(HINSTANCE hInstance) {
         17, 20,
         hMainWindow,
         (HMENU)IDC_RADIO2,
-        hInstance, NULL);
+        hInstance, nullptr);
 
     SendMessageW(hRadio2, WM_SETFONT, (WPARAM)hLabelFont, 0);
 
@@ -755,8 +952,6 @@ bool InitializeWindow(HINSTANCE hInstance) {
     );
 
     SendMessageW(hQuit, WM_SETFONT, (WPARAM)hLabelFont, 0);
-    
-    const WCHAR *pVersion = L"2.1";
 
     WCHAR pVersionString[256]{};
 
@@ -777,12 +972,12 @@ bool InitializeWindow(HINSTANCE hInstance) {
     SetWindowSubclass(hVersion, StaticLinkProc, IDC_LABEL4, 0);
 
     SendMessageW(hVersion, WM_SETFONT, (WPARAM)hSmolFont, 0);
-    SendMessageW(hVersion, WM_APP + IDC_LABEL4, 0, 0);
+    SendMessageW(hVersion, WM_APP + 0x69, 0, 0);
 
     HWND hMotto = CreateWindowExW(
         0,
         L"Static",
-        L"we keep on downloading ◄ 11/04/2023",
+        L"we keep on downloading ◄ 12/04/2023",
         WS_CHILD | WS_VISIBLE,
         w - (170 + 15), 436,
         170, 16,
@@ -794,8 +989,6 @@ bool InitializeWindow(HINSTANCE hInstance) {
 
     ShowWindow(hMainWindow, SW_SHOW);
     UpdateWindow(hMainWindow);
-
-    PlayAudio(hInstance, MAKEINTRESOURCEW(IDR_WAVE1), SND_ASYNC | SND_LOOP | SND_NODEFAULT);
 
     MSG uMessage;
 

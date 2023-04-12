@@ -39,6 +39,7 @@
 #define IDC_INPUT2  1021
 
 #define IDC_IMAGE1  1050
+#define IDC_IMAGE2  1051
 
 #define IDC_LABEL1  1055
 #define IDC_LABEL2  1056
@@ -58,11 +59,9 @@ extern const long aXP;
 extern const long bXP;
 
 // xp.cpp
-int keyXP(
-    char *pKey,
-    ul32 *hash,
-    ul32 *sig,
-    ul32 nRaw
+bool keyXP(
+        char *pKey,
+        ul32 nRaw
 );
 
 void unpackXP(
@@ -70,39 +69,43 @@ void unpackXP(
         ul32 *hash,
         ul32 *sig,
         ul32 *raw
-        );
+);
 
 void packXP(
         ul32 *raw,
         ul32 *serial,
         ul32 *hash,
         ul32 *sig
-        );
+);
 
-void verifyXPKey(
+bool verifyXPKey(
         EC_GROUP    *eCurve,
         EC_POINT    *generator,
         EC_POINT    *publicKey,
         char        *cdKey
-        );
+);
 
 void generateXPKey(
-        byte        *pKey,
+        char        *pKey,
         EC_GROUP    *eCurve,
         EC_POINT    *generator,
         BIGNUM      *order,
         BIGNUM      *privateKey,
         ul32        *pRaw
-        );
+);
 
 // server.cpp
+bool keyServer(
+        char *pKey
+);
+
 void unpackServer(
         ul32 *osFamily,
         ul32 *hash,
         ul32 *sig,
         ul32 *prefix,
         ul32 *raw
-        );
+);
 
 void packServer(
         ul32 *raw,
@@ -110,24 +113,24 @@ void packServer(
         ul32 *hash,
         ul32 *sig,
         ul32 *prefix
-        );
+);
 
-void verifyServerKey(
+bool verifyServerKey(
         EC_GROUP    *eCurve,
         EC_POINT    *generator,
         EC_POINT    *public_key,
         char        *cdKey
-        );
+);
 
 void generateServerKey(
-        byte        *pKey,
+        char        *pKey,
         EC_GROUP    *eCurve,
         EC_POINT    *generator,
         BIGNUM      *order,
         BIGNUM      *privateKey,
         ul32        *osFamily,
         ul32        *prefix
-        );
+);
 
 // utilities.cpp
 void cprintf(const char *Format, int nColor, ...);
@@ -149,8 +152,8 @@ EC_GROUP *initializeEllipticCurve(
         );
 
 // key.cpp
-void unbase24(ul32 *byteSeq, byte *cdKey);
-void base24(byte *cdKey, ul32 *byteSeq);
+void unbase24(ul32 *byteSeq, const char *cdKey);
+void base24(char *cdKey, ul32 *byteSeq);
 void printProductKey(const char *pKey);
 void printProductID(const ul32 *pRaw);
 
