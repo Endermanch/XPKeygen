@@ -110,8 +110,13 @@ The rest of the job is done within the code of this keygen.
 * ~~Some keys aren't valid, but it's generally a less common occurrence. About 2 in 3 of the keys should work.~~<br>
 **Fixed in v1.2**. Prior versions generated a valid key with an exact chance of `0x40000/0x62A32`, which resulted in exactly
 `0.64884`, or about 65%. My "2 in 3" estimate was inconceivably accurate.
-* Tested **only** on Windows XP Professional SP3, but should work everywhere else as well.
-* Server 2003 key generation not included yet.
+* Tested on multiple Windows XP setups. Works on **Professional x86**, all service packs. Other Windows editions may not work. **x64 DOES NOT WORK**. 
+* ~~Server 2003 key generation not included yet.~~<br>
+**Fixed in v2.2**
+* Some Windows XP VLK keys tend to be "worse" than others. Some of them may trigger a broken WPA with an empty Installation ID after install.
+You have the best chances generating "better" keys with the `BBB` section set to `640` and the `CCCCCC` section not set to 0.
+* Windows Server 2003/SP2 x64 key generation is broken. I'm not sure where to even start there. The keys don't appear to be valid anywhere,
+but the algorithm is well-documented. The implementation in my case generates about 1 in 3 "valid" keys. What version they're valid in, we're yet to discover. 
 
 
 ### Literature
