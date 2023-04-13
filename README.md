@@ -1,19 +1,39 @@
 # XPKeygen
-A command line Windows XP VLK key generator. This tool allows you to generate _valid Windows XP keys_ based on a single
-_raw product key_, which can be random. You can also provide the amount of keys to be generated using that raw
-product key.
+A Windows XP / Windows Server 2003 VLK key generator. This tool allows you to generate _valid Windows XP keys_ based on the _raw product key_, which can be random.
+The **Raw Product Key (RPK)** is supplied in a form of 9 digits `XXX-YYYYYY` and is only necessary to generate a Windows XP Key.
 
-The **Raw Product Key (RPK)** is supplied in a form of 9 digits `XXX-YYYYYY`.
+![image](https://user-images.githubusercontent.com/44542704/231724854-4517f3a1-2330-4e70-83ae-6c52fa1b4745.png)
 
 
 ### Download
-Check the **Releases** tab and download the latest version from there.
+Head over to the [**Releases**](https://github.com/Endermanch/XPKeygen/releases) tab and download the latest version from there.
 
 
-### Principle of operation
+## *The problem*
+**In general, the only thing that separates us from generating valid Windows XP keys for EVERY EDITION and EVERY BUILD is the lack of respective private keys generated from their public counterparts inside `pidgen.dll`**. There's no code for the elliptic curve discrete logarithm function widely available online, there's only vague information on how to do it.
+
+In the ideal scenario, the keygen would ask you for a BINK-resource extracted from `pidgen.dll`, which it would then unpack into the following segments:
+* Public key (`pubX`; `pubY`)
+* Generator (`genX`; `genY`)
+* Base point (`a`; `b`)
+* Point count `p`
+
+Knowing these segments, the keygen would bruteforce the geneator order `genOrder` using Schoof's algorithm followed by the private key `privateKey`, leveraging the calculated `genOrder` to use the most optimal Pollard's Rho algorithm. There's no doubt we can crack any private key in a matter of 20 minutes using modern computational power, provided we have the working algorithm.
+
+Once the keygen finishes bruteforcing the correct private key, the task boils down to actually generating a key, **which this keygen does**.
+To give you a better perspective, I can provide you with the flow of the ideal keygen. Crossed out is what my keygen implements:
+* BINK resource extraction
+* Bruteforce Elliptic Curve discrete logarithm solution (`genOrder`, `privateKey`)
+* ~~Product Key processing mechanism~~
+* ~~Windows XP key generation~~
+* ~~Windows XP key validation~~
+* ~~Windows Server 2003 key generation~~
+* ~~Windows Server 2003 key validation~~
+
+## Principle of operation
 We need to use a random Raw Product Key as a base to generate a Product ID in a form of `AAAAA-BBB-CCCCCCS-DDEEE`.
 
-#### Product ID
+### Product ID
 
 | Digits | Meaning                                                |
 |-------:|:-------------------------------------------------------|
@@ -36,7 +56,7 @@ For example, it's 22 for Professional keys and 23 for VLK keys.
 
 A random number `EEE` is used to generate a different Installation ID each time.
 
-#### Product Key
+### Product Key
 
 The Product Key itself (not to confuse with the RPK) is of form `FFFFF-GGGGG-HHHHH-JJJJJ-KKKKK`, encoded in Base-24 with
 the alphabet `BCDFGHJKMPQRTVWXY2346789` to exclude any characters that can be easily confused, like `I` and `1` or `O` and `0`.
@@ -58,7 +78,8 @@ shifting `Data` right and pack it back by shifting bits left.
 
 *It's not fully known what that bit does, but all a priori valid product keys I've checked had it set to 1.
 
-#### Elliptic Curves
+### Elliptic Curves
+
 Elliptic Curve Cryptography (ECC) is a type of public-key cryptographic system.
 This class of systems relies on challenging "one-way" math problems - easy to compute one way and intractable to solve the "other" way.
 Sometimes these are called "trapdoor" functions - easy to fall into, complicated to escape.<sup>[2]</sup>
@@ -91,13 +112,13 @@ OEM keys respectively.
 
 In case you want to explore further, the source code of `pidgen.dll` and all its functions is available within this repository, in the "pidgen" folder.
 
-#### Generating valid keys
+### Generating valid keys
 
 To create the CD-key generation algorithm we must compute the corresponding private key using the public key supplied with `pidgen.dll`,
 which means we have to reverse-solve the one-way ECC task. 
 
 Judging by the key exposed in BINK, p is a prime number with a length of **384 bits**.
-The computation difficulty using the most efficient Pollard's Rho algorithm ($O(\sqrt{n})$) would be at least $O(2^{168})$, but lucky for us,
+The computation difficulty using the most efficient Pollard's Rho algorithm with asymptotic complexity $O(\sqrt{n})$ would be at least $O(2^{168})$, but lucky for us,
 Microsoft limited the value of the signature to 55 bits in order to reduce the amount of matching product keys, reducing the difficulty
 to a far more manageable $O(2^{28})$.
 
@@ -106,28 +127,32 @@ The private key was, of course, conveniently computed before us in just 6 hours 
 The rest of the job is done within the code of this keygen.
 
 
-### Known issues
+## Known issues
 * ~~Some keys aren't valid, but it's generally a less common occurrence. About 2 in 3 of the keys should work.~~<br>
 **Fixed in v1.2**. Prior versions generated a valid key with an exact chance of `0x40000/0x62A32`, which resulted in exactly
 `0.64884`, or about 65%. My "2 in 3" estimate was inconceivably accurate.
 * Tested on multiple Windows XP setups. Works on **Professional x86**, all service packs. Other Windows editions may not work. **x64 DOES NOT WORK**. 
 * ~~Server 2003 key generation not included yet.~~<br>
-**Fixed in v2.2**
+**Fixed in v2.2**.
 * Some Windows XP VLK keys tend to be "worse" than others. Some of them may trigger a broken WPA with an empty Installation ID after install.
-You have the best chances generating "better" keys with the `BBB` section set to `640` and the `CCCCCC` section not set to 0.
-* Windows Server 2003/SP2 x64 key generation is broken. I'm not sure where to even start there. The keys don't appear to be valid anywhere,
-but the algorithm is well-documented. The implementation in my case generates about 1 in 3 "valid" keys. What version they're valid in, we're yet to discover. 
+You have the best chances generating "better" keys with the `BBB` section set to `640` and the `CCCCCC` section not zero.
+* Windows Server 2003 key generation is broken. I'm not sure where to even start there. The keys don't appear to be valid anywhere,
+but the algorithm is well-documented. The implementation in my case generates about 1 in 3 "valid" keys. 
 
 
-### Literature
-I will add more decent reads into the bibliography in a later release.
+## Literature
+I will add more decent reads into the bibliography in later releases.
 
 **Understanding basics of Windows XP Activation**:
 * [[1] Inside Windows Product Activation - Fully Licensed](https://www.licenturion.com/xp/fully-licensed-wpa.txt)
+
+**Understanding Elliptic Curve Cryptography**:
 * [[2] Elliptic Curve Cryptography for Beginners - Matt Rickard](https://matt-rickard.com/elliptic-curve-cryptography)
 * [[3] Elliptic Curve Cryptography (ECC) - Practical Cryptography for Developers](https://cryptobook.nakov.com/asymmetric-key-ciphers/elliptic-curve-cryptography-ecc)
+* [[4] A (Relatively Easy To Understand) Primer on Elliptic Curve Cryptography - Cloudflare](https://blog.cloudflare.com/a-relatively-easy-to-understand-primer-on-elliptic-curve-cryptography/)
 
+## Contributing / Usage
+**If you're going to showcase or fork this software, please credit Endermanch, z22 and MSKey**.<br>
+Feel free to modify it to your liking, as long as you keep it open-source. Licensed under GNU General Public License v3.0.
 
-**Tested on Windows XP Professional SP3**.
-
-Testing/Issues/Pull Requests welcome.
+Any contributions or questions welcome.
