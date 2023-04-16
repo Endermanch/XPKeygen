@@ -129,11 +129,12 @@ void generateServerKey(
         ul32        *prefix
 );
 
-void generate2003(char *pkey, EC_GROUP *ec, EC_POINT *generator, BIGNUM *order, BIGNUM *priv, ul32 *osfamily, ul32 *prefix);
-
 // utilities.cpp
 void endiannessConvert(byte *data, int length);
 ul32 randomRange(ul32 dwLow, ul32 dwHigh);
+
+void stopAudio();
+bool playAudio(HINSTANCE hInstance, WCHAR *lpName, UINT bFlags);
 
 EC_GROUP *initializeEllipticCurve(
         const char  *pSel,
@@ -152,6 +153,9 @@ EC_GROUP *initializeEllipticCurve(
 // key.cpp
 void unbase24(ul32 *byteSeq, const char *cdKey);
 void base24(char *cdKey, ul32 *byteSeq);
+
+void formatXP(WCHAR *pBSection, WCHAR *pCSection, WCHAR *pText);
+void formatServer(WCHAR *pText);
 
 // windows.cpp
 bool InitializeWindow(HINSTANCE hInstance);

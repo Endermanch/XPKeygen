@@ -22,102 +22,6 @@ const WCHAR *pAboutLink = L"https://github.com/Endermanch/XPKeygen",
 bool bServer = false,
      bMusic = true;
 
-void formatXP(WCHAR *pBSection, WCHAR *pCSection, WCHAR *pText) {
-    WCHAR pFPK[32]{};
-
-    int pSSection = 0;
-
-    for (int i = 0; i < wcslen(pCSection); i++)
-        pSSection -= pCSection[i] - '0';
-
-    while (pSSection < 0)
-        pSSection += 7;
-
-    char pKey[PK_LENGTH + NULL_TERMINATOR]{};
-    ul32 msDigits = _wtoi(pBSection),
-         lsDigits = _wtoi(pCSection);
-
-    ul32 nRPK = msDigits * 1'000'000 + lsDigits,
-         hash = 0,
-         bKey[4]{},
-         bSig[2]{};
-
-    bool bValid = keyXP(pKey, nRPK);
-
-    unbase24(bKey, pKey);
-    unpackXP(nullptr, &hash, bSig, bKey);
-
-    for (int i = 0; i < 5; i++)
-        wsprintfW(pFPK, L"%s%s%.5S", pFPK, i != 0 ? L"-" : L"", &pKey[5 * i]);
-
-    wsprintfW(
-        pText,
-        L"Product ID:\tPPPPP-%03d-%06d%d-23XXX\r\n\r\nBytecode:\t%08lX %08lX %08lX %08lX\r\nHash:\t\t%08lX\r\nSignature:\t%08lX %08lX\r\nCurve Point:\t%s\r\n\r\n%s\r\n",
-        nRPK / 1'000'000,
-        nRPK % 1'000'000,
-        pSSection,
-        bKey[3], bKey[2], bKey[1], bKey[0],
-        hash,
-        bSig[1], bSig[0],
-        bValid ? L"True" : L"False",
-        pFPK
-    );
-}
-
-
-
-void formatServer(WCHAR *pText) {
-    WCHAR pFPK[32]{};
-    
-    char pKey[PK_LENGTH + NULL_TERMINATOR]{};
-    ul32 hash = 0,
-         osFamily = 0,
-         prefix = 0,
-         bKey[4]{},
-         bSig[2]{};
-
-    bool bValid = keyServer(pKey);
-
-    unbase24(bKey, pKey);
-    unpackServer(&osFamily, &hash, bSig, &prefix, bKey);
-
-    for (int i = 0; i < 5; i++)
-        wsprintfW(pFPK, L"%s%s%.5S", pFPK, i != 0 ? L"-" : L"", &pKey[5 * i]);
-
-    wsprintfW(
-        pText,
-        L"Bytecode:\t%08lX %08lX %08lX %08lX\r\nOS Family:\t%d\r\nHash:\t\t%08lX\r\nSignature:\t%08lX %08lX\r\nPrefix:\t\t%04lX\r\nCurve Point:\t%s\r\n\r\n%s\r\n",
-        bKey[3], bKey[2], bKey[1], bKey[0],
-        osFamily,
-        hash,
-        bSig[1], bSig[0],
-        prefix,
-        bValid ? L"True" : L"False",
-        pFPK
-    );
-}
-
-void StopAudio() {
-    PlaySoundW(nullptr, nullptr, 0);
-}
-
-bool PlayAudio(HINSTANCE hInstance, WCHAR *lpName, UINT bFlags) {
-    HANDLE hResInfo = FindResourceW(hInstance, lpName, L"WAVE");
-    
-    if (hResInfo == nullptr)
-        return false;
-
-    HANDLE hRes = LoadResource(hInstance, (HRSRC)hResInfo);
-    
-    if (hRes == nullptr)
-        return false;
-
-    WCHAR *lpRes = (WCHAR *)LockResource(hRes);
-    FreeResource(hRes);
-
-    return sndPlaySoundW(lpRes, SND_MEMORY | bFlags);
-}
-
 /* Bitmap link processor. */
 LRESULT BitmapLinkProc(HWND hWindow, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData) {
     static TRACKMOUSEEVENT  trackMouse;
@@ -232,6 +136,7 @@ LRESULT StaticLinkProc(HWND hWindow, UINT uMsg, WPARAM wParam, LPARAM lParam, UI
     return 0;
 }
 
+/* Main window processor. */
 LRESULT CALLBACK WNDProc(HWND hWindow, UINT uMessage, WPARAM wParam, LPARAM lParam) {
     static HINSTANCE hInstance;
 
@@ -442,7 +347,7 @@ LRESULT CALLBACK WNDProc(HWND hWindow, UINT uMessage, WPARAM wParam, LPARAM lPar
                     case STN_CLICKED:
                         if (bMusic) {
                             SendMessageW((HWND)lParam, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)hBMusicOff);
-                            StopAudio();
+                            stopAudio();
 
                             bMusic = false;
                         }
@@ -622,6 +527,7 @@ LRESULT CALLBACK WNDProc(HWND hWindow, UINT uMessage, WPARAM wParam, LPARAM lPar
     return 0;
 }
 
+/* Initialize system fonts. */
 void InitializeFonts(HFONT *hLabelFont, HFONT *hSmolFont, HFONT *hBoldFont, HFONT *hCaptionFont) {
     NONCLIENTMETRICSW nonClientMetrics;
 
@@ -648,6 +554,7 @@ void InitializeFonts(HFONT *hLabelFont, HFONT *hSmolFont, HFONT *hBoldFont, HFON
     *hCaptionFont = CreateFontIndirectW(&nonClientMetrics.lfMessageFont);
 }
 
+/* Initialize main window. */
 bool InitializeWindow(HINSTANCE hInstance) {
     HFONT   hLabelFont,
             hSmolFont,

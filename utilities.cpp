@@ -13,6 +13,34 @@ void endiannessConvert(byte *data, int length) {
     }
 }
 
+/* Generates a random 32-bit integer in range. */
+ul32 randomRange(ul32 dwLow, ul32 dwHigh) {
+    return rand() % (dwHigh - dwLow) + dwLow;
+}
+
+/* Stops current asynchronously played audio. */
+void stopAudio() {
+    PlaySoundW(nullptr, nullptr, 0);
+}
+
+/* Plays audio stored as a resource. */
+bool playAudio(HINSTANCE hInstance, WCHAR *lpName, UINT bFlags) {
+    HANDLE hResInfo = FindResourceW(hInstance, lpName, L"WAVE");
+
+    if (hResInfo == nullptr)
+        return false;
+
+    HANDLE hRes = LoadResource(hInstance, (HRSRC)hResInfo);
+
+    if (hRes == nullptr)
+        return false;
+
+    WCHAR *lpRes = (WCHAR *)LockResource(hRes);
+    FreeResource(hRes);
+
+    return sndPlaySoundW(lpRes, SND_MEMORY | bFlags);
+}
+
 /* Initializes the elliptic curve. */
 EC_GROUP *initializeEllipticCurve(
         const char *pSel,
@@ -84,9 +112,4 @@ EC_GROUP *initializeEllipticCurve(
     BN_CTX_free(context);
 
     return eCurve;
-}
-
-/* Generates a random 32-bit integer in range. */
-ul32 randomRange(ul32 dwLow, ul32 dwHigh) {
-    return rand() % (dwHigh - dwLow) + dwLow;
 }
