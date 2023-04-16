@@ -163,7 +163,7 @@ LRESULT CALLBACK WNDProc(HWND hWindow, UINT uMessage, WPARAM wParam, LPARAM lPar
         hInstance = ((LPCREATESTRUCT)(lParam))->hInstance;
         hMainDC = GetDC(hWindow);
 
-        PlayAudio(hInstance, MAKEINTRESOURCEW(IDR_WAVE1), SND_ASYNC | SND_LOOP | SND_NODEFAULT);
+        playAudio(hInstance, MAKEINTRESOURCEW(IDR_WAVE1), SND_ASYNC | SND_LOOP | SND_NODEFAULT);
 
         hBMusicOn = (HBITMAP)LoadImageW(hInstance, MAKEINTRESOURCEW(IDB_BITMAP3), IMAGE_BITMAP, 0, 0, 0);
         hBMusicOff = (HBITMAP)LoadImageW(hInstance, MAKEINTRESOURCEW(IDB_BITMAP4), IMAGE_BITMAP, 0, 0, 0);
@@ -353,7 +353,7 @@ LRESULT CALLBACK WNDProc(HWND hWindow, UINT uMessage, WPARAM wParam, LPARAM lPar
                         }
                         else {
                             SendMessageW((HWND)lParam, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)hBMusicOn);
-                            PlayAudio(hInstance, MAKEINTRESOURCEW(IDR_WAVE1), SND_ASYNC | SND_LOOP | SND_NODEFAULT);
+                            playAudio(hInstance, MAKEINTRESOURCEW(IDR_WAVE1), SND_ASYNC | SND_LOOP | SND_NODEFAULT);
 
                             bMusic = true;
                         }
