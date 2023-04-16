@@ -57,18 +57,12 @@ bool verifyXPKey(EC_GROUP *eCurve, EC_POINT *generator, EC_POINT *publicKey, cha
     
     // Convert Base24 CD-key to bytecode.
     ul32 bKey[4]{};
-    ul32 pID, hash, sig[2];
+    ul32 pID, checkHash, sig[2];
 
     unbase24(bKey, cdKey);
- 
-    // Output CD-key bytecode.
-    printf("Bytecode: %.8lX %.8lX %.8lX %.8lX\n", bKey[3], bKey[2], bKey[1], bKey[0]);
 
     // Extract data, hash and signature from the bytecode.
-    unpackXP(&pID, &hash, sig, bKey);
-    printProductID(&pID);
-    
-    printf("PID: %.8lX\nHash: %.8lX\nSignature: %.8lX %.8lX\n", pID, hash, sig[1], sig[0]);
+    unpackXP(&pID, &checkHash, sig, bKey);
 
     // e = Hash
     // s = Signature
@@ -76,7 +70,7 @@ bool verifyXPKey(EC_GROUP *eCurve, EC_POINT *generator, EC_POINT *publicKey, cha
 
     // Put hash word into BigNum e.
     e = BN_new();
-    BN_set_word(e, hash);
+    BN_set_word(e, checkHash);
 
     // Reverse signature and create a new BigNum s.
     endiannessConvert((byte *) sig, sizeof(sig));
@@ -147,8 +141,6 @@ bool verifyXPKey(EC_GROUP *eCurve, EC_POINT *generator, EC_POINT *publicKey, cha
     newHash = (md[0] | (md[1] << 8) | (md[2] << 16) | (md[3] << 24)) >> 4;
     newHash &= 0xfffffff;
     
-    printf("Calculated hash: %.8lX\n", newHash);
-    
     BN_free(e);
     BN_free(s);
     BN_free(x);
@@ -159,9 +151,8 @@ bool verifyXPKey(EC_GROUP *eCurve, EC_POINT *generator, EC_POINT *publicKey, cha
     EC_POINT_free(u);
     EC_POINT_free(v);
 
-    // If we managed to generateXPKey a pKey with the same hash, the pKey is correct.
-    if (newHash == hash) return true;
-    else return false;
+    // If we managed to generate a key with the same hash, the key is correct.
+    return newHash == checkHash;
 }
 
 /* Generate a valid Product Key. */
@@ -245,8 +236,6 @@ void generateXPKey(char *pKey, EC_GROUP *eCurve, EC_POINT *generator, BIGNUM *or
 
         // Pack product key.
         packXP(bKey, pRaw, &hash, sig);
-
-        printf("PID: %.8lX\nHash: %.8lX\nSignature: %.8lX %.8lX\n\n", *pRaw, hash, sig[1], sig[0]);
     } while (bKey[3] >= 0x40000);
     // ↑ ↑ ↑
     // bKey[3] can't be longer than 18 bits, else the signature part will make
@@ -297,14 +286,10 @@ bool keyXP(char *pKey, ul32 nRaw) {
     // Shift left once.
     nRaw <<= 1;
 
-    cprintf("Product Key:", 0x0A);
+    // Generate the key until it's valid. (In XP it's valid 100% of the times)
+    do {
+        generateXPKey(pKey, eCurve, genPoint, genOrder, privateKey, &nRaw);
+    } while (!verifyXPKey(eCurve, genPoint, pubPoint, pKey));
 
-    // Generate the key.
-    generateXPKey(pKey, eCurve, genPoint, genOrder, privateKey, &nRaw);
-    printProductKey(pKey);
-
-    printf("\n\n");
-
-    // Verify the key.
-    return verifyXPKey(eCurve, genPoint, pubPoint, pKey);
+    return true;
 }

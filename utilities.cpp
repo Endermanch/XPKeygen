@@ -4,19 +4,6 @@
 
 #include "header.h"
 
-/* Colored output. */
-void cprintf(const char *Format, int nColor, ...) {
-    va_list vList;
-
-    va_start(vList, nColor);
-
-    SetConsoleTextAttribute(hConsole, nColor);
-    vprintf(Format, vList);
-    SetConsoleTextAttribute(hConsole, 0x0F);
-
-    va_end(vList);
-}
-
 /* Convert data between endianness types. */
 void endiannessConvert(byte *data, int length) {
     for (int i = 0; i < length / 2; i++) {

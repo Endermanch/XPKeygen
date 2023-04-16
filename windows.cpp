@@ -15,7 +15,9 @@ HWND hMainWindow;
 
 const WCHAR *pAboutLink = L"https://github.com/Endermanch/XPKeygen",
             *pWebsite = L"https://malwarewatch.org",
-            *pVersion = L"2.2";
+            *pVersion = L"2.2",
+            *pTitle = L"Windows XP Pro SP3 // Server 2003 SP0 x86 VLK - Enderman[ch]",
+            *pGroupTitle = L"Windows XP Pro SP3 // Server 2003 SP0 x86 VLK";
 
 bool bServer = false,
      bMusic = true;
@@ -61,6 +63,8 @@ void formatXP(WCHAR *pBSection, WCHAR *pCSection, WCHAR *pText) {
         pFPK
     );
 }
+
+
 
 void formatServer(WCHAR *pText) {
     WCHAR pFPK[32]{};
@@ -676,7 +680,7 @@ bool InitializeWindow(HINSTANCE hInstance) {
     hMainWindow = CreateWindowExW(
             0,
             L"XPKeygen",
-            L"Windows XP VLK // Server 2003 - Enderman[ch]",
+            pTitle,
             WS_SYSMENU,
             x, y,
             w, h,
@@ -728,7 +732,7 @@ bool InitializeWindow(HINSTANCE hInstance) {
 
     HWND hGroupBox = CreateWindowExW(
         0,
-        L"Static", L"Windows XP Pro VLK x86 // Server 2003 + SP2 x64",
+        L"Static", pGroupTitle,
         WS_CHILD | WS_VISIBLE |
         SS_CENTER,
         42, 150,
@@ -877,11 +881,11 @@ bool InitializeWindow(HINSTANCE hInstance) {
     HWND hRadioLabel2 = CreateWindowExW(
         0,
         L"Static",
-        L"Windows Server 2003 / SP2 x64",
+        L"Windows Server 2003 VLK",
         WS_CHILD | WS_VISIBLE |
         SS_NOTIFY,
         218, 221,
-        170, 16,
+        142, 16,
         hMainWindow, (HMENU)IDC_LABEL3,
         hInstance, nullptr
     );
@@ -974,18 +978,18 @@ bool InitializeWindow(HINSTANCE hInstance) {
     SendMessageW(hVersion, WM_SETFONT, (WPARAM)hSmolFont, 0);
     SendMessageW(hVersion, WM_APP + 0x69, 0, 0);
 
-    HWND hMotto = CreateWindowExW(
+    HWND hBRText = CreateWindowExW(
         0,
         L"Static",
-        L"we keep on downloading ◄ 12/04/2023",
+        L"z22 / mskey / Endermanch ◄ 16/04/2023",
         WS_CHILD | WS_VISIBLE,
-        w - (170 + 15), 436,
+        w - (170 + 20), 436,
         170, 16,
         hMainWindow, (HMENU)IDC_LABEL5,
         hInstance, nullptr
     );
 
-    SendMessageW(hMotto, WM_SETFONT, (WPARAM)hSmolFont, 0);
+    SendMessageW(hBRText, WM_SETFONT, (WPARAM)hSmolFont, 0);
 
     ShowWindow(hMainWindow, SW_SHOW);
     UpdateWindow(hMainWindow);

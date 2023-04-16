@@ -49,9 +49,6 @@
 
 typedef unsigned long ul32;
 
-extern HANDLE hConsole;
-
-extern ul32 dwSeed;
 extern byte charset[];
 
 extern const char pXP[];
@@ -132,8 +129,9 @@ void generateServerKey(
         ul32        *prefix
 );
 
+void generate2003(char *pkey, EC_GROUP *ec, EC_POINT *generator, BIGNUM *order, BIGNUM *priv, ul32 *osfamily, ul32 *prefix);
+
 // utilities.cpp
-void cprintf(const char *Format, int nColor, ...);
 void endiannessConvert(byte *data, int length);
 ul32 randomRange(ul32 dwLow, ul32 dwHigh);
 
@@ -154,8 +152,6 @@ EC_GROUP *initializeEllipticCurve(
 // key.cpp
 void unbase24(ul32 *byteSeq, const char *cdKey);
 void base24(char *cdKey, ul32 *byteSeq);
-void printProductKey(const char *pKey);
-void printProductID(const ul32 *pRaw);
 
 // windows.cpp
 bool InitializeWindow(HINSTANCE hInstance);
