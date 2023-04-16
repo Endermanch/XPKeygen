@@ -15,7 +15,7 @@ HWND hMainWindow;
 
 const WCHAR *pAboutLink = L"https://github.com/Endermanch/XPKeygen",
             *pWebsite = L"https://malwarewatch.org",
-            *pVersion = L"2.2",
+            *pVersion = L"2.3",
             *pTitle = L"Windows XP Pro SP3 // Server 2003 SP0 x86 VLK - Enderman[ch]",
             *pGroupTitle = L"Windows XP Pro SP3 // Server 2003 SP0 x86 VLK";
 
@@ -67,7 +67,7 @@ LRESULT BitmapLinkProc(HWND hWindow, UINT uMsg, WPARAM wParam, LPARAM lParam, UI
 
         // Remove the subclass before window closes.
         case WM_NCDESTROY: {
-            RemoveWindowSubclass(hWindow, BitmapLinkProc, uIdSubclass);
+            RemoveWindowSubclass(hWindow, (SUBCLASSPROC)BitmapLinkProc, uIdSubclass);
 
             break;
         }
@@ -124,7 +124,7 @@ LRESULT StaticLinkProc(HWND hWindow, UINT uMsg, WPARAM wParam, LPARAM lParam, UI
 
         // Remove the subclass before window closes.
         case WM_NCDESTROY: {
-            RemoveWindowSubclass(hWindow, StaticLinkProc, uIdSubclass);
+            RemoveWindowSubclass(hWindow, (SUBCLASSPROC)StaticLinkProc, uIdSubclass);
 
             break;
         }
@@ -634,7 +634,7 @@ bool InitializeWindow(HINSTANCE hInstance) {
 
     SendMessageW(hMusic, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)hBMusicOn);
 
-    SetWindowSubclass(hMusic, BitmapLinkProc, IDC_IMAGE2, 0);
+    SetWindowSubclass(hMusic, (SUBCLASSPROC)BitmapLinkProc, IDC_IMAGE2, 0);
     SendMessageW(hMusic, WM_APP + 0x69, 0, 0);
 
     HWND hGroupBox = CreateWindowExW(
@@ -880,7 +880,7 @@ bool InitializeWindow(HINSTANCE hInstance) {
         hInstance, nullptr
     );
 
-    SetWindowSubclass(hVersion, StaticLinkProc, IDC_LABEL4, 0);
+    SetWindowSubclass(hVersion, (SUBCLASSPROC)StaticLinkProc, IDC_LABEL4, 0);
 
     SendMessageW(hVersion, WM_SETFONT, (WPARAM)hSmolFont, 0);
     SendMessageW(hVersion, WM_APP + 0x69, 0, 0);
