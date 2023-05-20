@@ -138,7 +138,7 @@ The rest of the job is done within the code of this keygen.
 You have the best chances generating "better" keys with the `BBB` section set to `640` and the `CCCCCC` section not zero.
 * ~~Windows Server 2003 key generation is broken. I'm not sure where to even start there. The keys don't appear to be valid anywhere,
 but the algorithm is well-documented. The implementation in my case generates about 1 in 3 "valid" keys.~~<br>
-**Fixed in v2.3***. That fix isn't the cleanest one.
+**Fixed in v2.3***.
 
 
 ## Literature
