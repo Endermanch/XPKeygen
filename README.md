@@ -82,7 +82,7 @@ shifting `Data` right and pack it back by shifting bits left.
 
 Elliptic Curve Cryptography (ECC) is a type of public-key cryptographic system.
 This class of systems relies on challenging "one-way" math problems - easy to compute one way and intractable to solve the "other" way.
-Sometimes these are called "trapdoor" functions - easy to fall into, complicated to escape.<sup>[2]</sup>
+Sometimes these are called "trapdoor" functions - easy to fall into, complicated to escape.<sup>[5]</sup>
 
 ECC relies on solving equations of the form
 $$y^2 = x^3 + ax + b$$
@@ -136,8 +136,9 @@ The rest of the job is done within the code of this keygen.
 **Fixed in v2.2**.
 * Some Windows XP VLK keys tend to be "worse" than others. Some of them may trigger a broken WPA with an empty Installation ID after install.
 You have the best chances generating "better" keys with the `BBB` section set to `640` and the `CCCCCC` section not zero.
-* Windows Server 2003 key generation is broken. I'm not sure where to even start there. The keys don't appear to be valid anywhere,
-but the algorithm is well-documented. The implementation in my case generates about 1 in 3 "valid" keys. 
+* ~~Windows Server 2003 key generation is broken. I'm not sure where to even start there. The keys don't appear to be valid anywhere,
+but the algorithm is well-documented. The implementation in my case generates about 1 in 3 "valid" keys.~~<br>
+**Fixed in v2.3***. That fix isn't the cleanest one.
 
 
 ## Literature
@@ -145,11 +146,17 @@ I will add more decent reads into the bibliography in later releases.
 
 **Understanding basics of Windows XP Activation**:
 * [[1] Inside Windows Product Activation - Fully Licensed](https://www.licenturion.com/xp/fully-licensed-wpa.txt)
+* [[2] MSKey 4-in-1 ReadMe](https://malwarewatch.org/documents/MSKey4in1.pdf)
+* [[3] Windows序列号产生原理(椭圆曲线法)](https://blog.csdn.net/zhiyuan411/article/details/5156330)
 
 **Understanding Elliptic Curve Cryptography**:
-* [[2] Elliptic Curve Cryptography for Beginners - Matt Rickard](https://matt-rickard.com/elliptic-curve-cryptography)
-* [[3] Elliptic Curve Cryptography (ECC) - Practical Cryptography for Developers](https://cryptobook.nakov.com/asymmetric-key-ciphers/elliptic-curve-cryptography-ecc)
-* [[4] A (Relatively Easy To Understand) Primer on Elliptic Curve Cryptography - Cloudflare](https://blog.cloudflare.com/a-relatively-easy-to-understand-primer-on-elliptic-curve-cryptography/)
+* [[4] Elliptic Curve Cryptography for Beginners - Matt Rickard](https://matt-rickard.com/elliptic-curve-cryptography)
+* [[5] Elliptic Curve Cryptography (ECC) - Practical Cryptography for Developers](https://cryptobook.nakov.com/asymmetric-key-ciphers/elliptic-curve-cryptography-ecc)
+* [[6] A (Relatively Easy To Understand) Primer on Elliptic Curve Cryptography - Cloudflare](https://blog.cloudflare.com/a-relatively-easy-to-understand-primer-on-elliptic-curve-cryptography/)
+
+**Public discussions**:
+* [[7] Windows 98 Equivalent // Server 2003 Algorithm](https://github.com/Endermanch/XPKeygen/issues/3)
+* [[8] Cracking Windows XP](https://forums.mydigitallife.net/threads/is-there-any-way-to-crack-decrypt-the-winxp-consumer-activation-system-to-generate-activation-ids.80133/)
 
 ## Contributing / Usage
 **If you're going to showcase or fork this software, please credit Endermanch, z22 and MSKey**.<br>
