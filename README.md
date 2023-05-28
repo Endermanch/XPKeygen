@@ -58,7 +58,7 @@ A random number `EEE` is used to generate a different Installation ID each time.
 
 ### Product Key
 
-The Product Key itself (not to confuse with the RPK) is of form `FFFFF-GGGGG-HHHHH-JJJJJ-KKKKK`, encoded in Base-24 with
+The Product Key itself (not to confuse with the RPK) is in form `FFFFF-GGGGG-HHHHH-JJJJJ-KKKKK`, encoded in Base-24 with
 the alphabet `BCDFGHJKMPQRTVWXY2346789` to exclude any characters that can be easily confused, like `I` and `1` or `O` and `0`.
 
 As per the alphabet capacity formula, the key can at most contain 114 bits of information.
@@ -103,10 +103,74 @@ used in cryptography are "sets of points in square matrix".
 The above curve is "educational". It provides very small key length (4-5 bits).
 In real world situations developers typically use curves of 256-bits or more.
 
+### BINK resource
 
 Since it is a public-key cryptographic system, Microsoft had to share the public key with their Windows XP release to check entered product keys against.
 It is stored within `pidgen.dll` in a form of a BINK resource. The first set of BINK data is there to validate retail keys, the second is for the
 OEM keys respectively.
+
+The structure of the BINK resource for Windows 98 and Windows XP is as follows:
+
+| Offset | Value                                            |
+|-------:|--------------------------------------------------|
+| `0x0000` | BINK ID                                        |
+| `0x0004` | Size of BINKEY structure in bytes              |
+| `0x0008` | Header length                                  |
+| `0x000C` | Checksum                                       |
+| `0x0010` | Number-encoded date (BINKEY version)           |
+| `0x0014` | ECC curve order size (always `12` in practice) |
+| `0x0018` | Hash length (always `28` in practice)          |
+| `0x001C` | Signature length (always `55` in practice)     |
+| `0x0020` | Finite Field Order `p`                         |
+| `0x005C` | Curve Parameter `a`                            |
+| `0x0098` | Curve Parameter `b`                            |
+| `0x00D4` | Base Point x-coordinate `Gx`                   |
+| `0x0110` | Base Point y-coordinate `Gy`                   |
+| `0x014C` | Public Key x-coordinate `Kx`                   |
+| `0x0188` | Public Key y-coordinate `Ky`                   |
+
+![BINK](https://github.com/Endermanch/XPKeygen/assets/44542704/497ad018-884f-41af-ba89-633202d30328)
+
+And here's my implementation for the BINK Reader in C:
+```c
+typedef struct _EC_BYTE_POINT {
+    CHAR x[256];    // x-coordinate of the point on the elliptic curve.
+    CHAR y[256];    // y-coordinate of the point on the elliptic curve.
+} EC_BYTE_POINT;
+
+typedef struct _BINKHDR {
+    // BINK version - not stored in the resource.
+    ULONG32 dwVersion;
+
+    // Original BINK header.
+    ULONG32 dwID;
+    ULONG32 dwSize;
+    ULONG32 dwHeaderLength;
+    ULONG32 dwChecksum;
+    ULONG32 dwDate;
+    ULONG32 dwKeySizeInDWORDs;
+    ULONG32 dwHashLength;
+    ULONG32 dwSignatureLength;
+    
+    // Extended BINK header. (Windows Server 2003+)
+    ULONG32 dwAuthCodeLength;
+    ULONG32 dwProductIDLength;
+} BINKHDR;
+
+typedef struct _BINKDATA {
+    CHAR p[256];        // Finite Field order p.
+    CHAR a[256];        // Elliptic Curve parameter a.
+    CHAR b[256];        // Elliptic Curve parameter b.
+
+    EC_BYTE_POINT G;    // Base point (Generator) G.
+    EC_BYTE_POINT K;    // Public key K.
+} BINKDATA;
+
+typedef struct _BINKEY {
+    BINKHDR  header;
+    BINKDATA data;
+} BINKEY;
+```
 
 In case you want to explore further, the source code of `pidgen.dll` and all its functions is available within this repository, in the "pidgen" folder.
 
