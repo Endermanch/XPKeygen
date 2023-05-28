@@ -46,7 +46,9 @@ We need to use a random Raw Product Key as a base to generate a Product ID in a 
 
 
 The OS Family constant `AAAAA` is different for each series of Windows XP. For example, it is 76487 for SP3.
+
 The `BBB` and `CCCCCC` sections essentially encode the Raw Product Key. For example, if the first section is equal to `XXX` and the second section is equal to `YYYYYY`, the Raw Product Key will be encoded as `XXX-YYYYYY`.
+
 The check digit `S` is picked so that the sum of all `C` digits with it added makes a number divisible by 7.
 
 The public key index `DD` lets us know which public key was used to successfully verify the authenticity of our Product Key.
