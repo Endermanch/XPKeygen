@@ -240,6 +240,7 @@ To compute the private key, we will need to supply the tool with the public ECC 
 The order of the base point can be computed using SageMath.
 
 **Here's the basic algorithm I used to reverse the Windows 98 private key:**
+
 1. Compute the order of the base point using **SageMath**. In SageMath, execute the following commands:
     1) `E = EllipticCurve(GF(p), [0, 0, 0, a, b])`, where `p`, `a` and `b` are decimally represented elliptic curve parameters from the BINK resource.
     2) `G = E(Gx, Gy)`, where `Gx` and `Gy` are decimally represented base point coordinates from the BINK resource.
@@ -254,7 +255,7 @@ The order of the base point can be computed using SageMath.
     3) Insert the factors of the base point order `n` and specify the factor count. It will very likely be `1`, as Microsoft mainly uses primes for their generator orders.
     4) Run the tool `<arch> ECDLP Solver.exe <job_name>.txt` and wait until it calculates the private key `k = %d` for you.
 
-Here's an example of the Windows XP job `job_xp.txt` that yields the correct private key for the ECDLP Solver.
+**Here's an example of the Windows XP job `job_xp.txt` that yields the correct private key for the ECDLP Solver.**
 
 ```pascal
 GF := GF(22604814143135632990679956684344311209819952803216271952472204855524756275151440456421260165232069708317717961315241);
@@ -267,8 +268,14 @@ FactorCount:=1;
 */
 ```
 
-And the ECDLP Solver output for it:
+**And the ECDLP Solver output for it:**
+
 ![ECDLP Solver Output](https://github.com/Endermanch/XPKeygen/assets/44542704/ca018eae-ae33-41e5-a689-2c17da972184)
+
+**Important note:**
+
+Be wary that I could not generate a correct Windows XP x64 key using the private key I've reversed, even using the `Ky` coordinate instead of usual `-Ky`.
+For some reason, I also failed to calculate the Windows Server 2003 base point order using SageMath. **I gave it 12 hours to compute on my i7-12700K, but it was still stuck calculating.**
 
 ### Validating / generating product keys
 The rest of the job is done within the code of this keygen.
