@@ -68,15 +68,13 @@ Based on that calculation, we unpack the 114-bit Product Key into 4 ordered segm
 
 | Segment   | Capacity | Data                                      |
 |-----------|----------|-------------------------------------------|
-| Flag      | 1 bit    | Reserved, always set to `0x01`*           |
+| Upgrade   | 1 bit    | Upgrade version flag                      |
 | Serial    | 30 bits  | Raw Product Key (RPK)                     |
 | Hash      | 28 bits  | RPK hash                                  |
 | Signature | 55 bits  | Elliptic Curve signature for the RPK hash |
 
-For simplicity' sake, we'll combine `Flag` and `Serial` segments into a single segment called `Data`. By that logic we'll be able to extract the RPK by
-shifting `Data` right and pack it back by shifting bits left.
-
-*It's not fully known what that bit does, but all a priori valid product keys I've checked had it set to 1.
+For simplicity' sake, we'll combine `Upgrade` and `Serial` segments into a single segment called `Data`. By that logic we'll be able to extract the RPK by
+shifting `Data` right and pack it back by shifting bits left, because most a priori valid product keys I've checked had the Upgrade bit set to 1.
 
 ### Elliptic Curves
 
