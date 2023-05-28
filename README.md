@@ -76,6 +76,22 @@ Based on that calculation, we unpack the 114-bit Product Key into 4 ordered segm
 For simplicity' sake, we'll combine `Upgrade` and `Serial` segments into a single segment called `Data`. By that logic we'll be able to extract the RPK by
 shifting `Data` right and pack it back by shifting bits left, because most a priori valid product keys I've checked had the Upgrade bit set to 1.
 
+Microsoft redid their Product Key format with Windows Server 2003 to include a backend server authentication key, which was an actually secure approach to
+license validation, as no one could ever make a guess on which validation algorithm they had employed on their private server. Besides adding the online
+validation mechanism, they also cranked up the overall arithmetic from 384 to 512 bits, and the signature scalar to 62 bits of information. 
+
+| Segment    | Capacity | Data                                      |
+|------------|----------|-------------------------------------------|
+| Upgrade    | 1 bit    | Upgrade version flag                      |
+| Channel ID | 10 bits  | The `BBB` part of the RPK                 |
+| Hash       | 31 bits  | RPK hash                                  |
+| Signature  | 62 bits  | Elliptic Curve signature for the RPK hash |
+| Auth Key   | 10 bits  | Backend authentication value              |
+
+However, if we generated a key without the online activation in mind, we still could generate valid keys that would let us through the setup of the operating system.
+And that's exactly what the code does - it generates a random 10-bit authentication key. Nowadays it doesn't matter at all, as activation servers are down and
+Server 2003 is considered abandonware, the same way this entire project shouldn't be considered piracy.
+
 ### Elliptic Curves
 
 Elliptic Curve Cryptography (ECC) is a type of public-key cryptographic system.
@@ -111,8 +127,8 @@ OEM keys respectively.
 
 The structure of the BINK resource for Windows 98 and Windows XP is as follows:
 
-| Offset | Value                                            |
-|-------:|--------------------------------------------------|
+|   Offset | Value                                          |
+|---------:|:-----------------------------------------------|
 | `0x0000` | BINK ID                                        |
 | `0x0004` | Size of BINKEY structure in bytes              |
 | `0x0008` | Header length                                  |
@@ -130,6 +146,26 @@ The structure of the BINK resource for Windows 98 and Windows XP is as follows:
 | `0x0188` | Public Key y-coordinate `Ky`                   |
 
 ![BINK](https://github.com/Endermanch/XPKeygen/assets/44542704/497ad018-884f-41af-ba89-633202d30328)
+
+Windows Server 2003 and Windows XP x64 implement it differently:
+
+|   Offset | Value                                          |
+|---------:|:-----------------------------------------------|
+| `0x0000` | BINK ID                                        |
+| `0x0004` | Size of BINKEY structure in bytes              |
+| `0x0008` | Header length                                  |
+| `0x000C` | Checksum                                       |
+| `0x0010` | Number-encoded date (BINKEY version)           |
+| `0x0014` | ECC curve order size (always `12` in practice) |
+| `0x0018` | Hash length (always `28` in practice)          |
+| `0x001C` | Signature length (always `55` in practice)     |
+| `0x0020` | Finite Field Order `p`                         |
+| `0x005C` | Curve Parameter `a`                            |
+| `0x0098` | Curve Parameter `b`                            |
+| `0x00D4` | Base Point x-coordinate `Gx`                   |
+| `0x0110` | Base Point y-coordinate `Gy`                   |
+| `0x014C` | Public Key x-coordinate `Kx`                   |
+| `0x0188` | Public Key y-coordinate `Ky`                   |
 
 And here's my implementation for the BINK Reader in C:
 ```c
