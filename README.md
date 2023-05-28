@@ -126,7 +126,7 @@ An elliptic curve over the finite field F<sub>p</sub> consists of:
 ![F17 Elliptic Curve](https://user-images.githubusercontent.com/44542704/230788993-d340f63c-7201-4307-a52c-9bf159b99d02.png)
 
 The curve consists of the blue points in above image. In practice the "elliptic curves"
-used in cryptography are "sets of points in square matrix".
+used in cryptography are "sets of points in a square matrix".
 
 The above curve is "educational". It provides very small key length (4-5 bits).
 In real world situations developers typically use curves of 256-bits or more.
@@ -137,7 +137,7 @@ Since it is a public-key cryptographic system, Microsoft had to share the public
 It is stored within `pidgen.dll` in a form of a BINK resource. The first set of BINK data is there to validate retail keys, the second is for the
 OEM keys respectively.
 
-The structure of the BINK resource for Windows 98 and Windows XP is as follows:
+**The structure of the BINK resource for Windows 98 and Windows XP is as follows:**
 
 |   Offset | Value                                                                |
 |---------:|:---------------------------------------------------------------------|
@@ -158,9 +158,10 @@ The structure of the BINK resource for Windows 98 and Windows XP is as follows:
 | `0x0188` | Public Key y-coordinate `Ky`                                         |
 
 Each segment is marked with a different color, the BINK header values are the same.
+
 ![BINK](https://github.com/Endermanch/XPKeygen/assets/44542704/497ad018-884f-41af-ba89-633202d30328)
 
-Windows Server 2003 and Windows XP x64 implement it differently:
+**Windows Server 2003 and Windows XP x64 implement it differently:**
 
 |   Offset | Value                                                                |
 |---------:|:---------------------------------------------------------------------|
@@ -182,7 +183,8 @@ Windows Server 2003 and Windows XP x64 implement it differently:
 | `0x0168` | Public Key x-coordinate `Kx`                                         |
 | `0x01A8` | Public Key y-coordinate `Ky`                                         |
 
-And here are my structure prototypes made for the BINK Reader in C:
+**And here are my structure prototypes made for the BINK Reader in C:**
+
 ```c
 typedef struct _EC_BYTE_POINT {
     CHAR x[256];    // x-coordinate of the point on the elliptic curve.
