@@ -12,13 +12,15 @@ Head over to the [**Releases**](https://github.com/Endermanch/XPKeygen/releases)
 ## *The problem*
 **In general, the only thing that separates us from generating valid Windows XP keys for EVERY EDITION and EVERY BUILD is the lack of respective private keys generated from their public counterparts inside `pidgen.dll`**. There's no code for the elliptic curve discrete logarithm function widely available online, there's only vague information on how to do it.
 
-The problem has been partially solved. The BINK resource was not encoded in any way and the data was just sequentially written to the resource. **sk00ter** also fully explained the BINK format on the MDL forums.
+As time went on, the problem has been _partially_ solved.
+
+The BINK resource was not encoded in any way and the data was just sequentially written to the resource. **sk00ter** also fully explained the BINK format on the MDL forums.
 Utilizing prior community knowledge on the subject, I wrote a BINK Reader in Python 3. The file is public in this repository, [click here](https://github.com/Endermanch/XPKeygen/blob/main/BINKReader.py) to view the source code.
 
 The discrete logarithm solution is the most unexplored area of research as of **May 28th, 2023**. However, my friend **nephacks** did find that elusive tool to solve that difficult problem in the darkest corners of the internet.
 It's called ECDLP (Elliptic Curve Discrete Logarithm Problem) Solver by Mr. HAANDI. Since it was extremely frustrating to find online, I did reupload it on my website. You can download the tool [here](https://dl.malwarewatch.org/software/advanced/ecc-research-tools/).
 
-The ReadMe file that comes with the version 0.2a of the solver is good enough by itself, so anyone with a brain will be able to set that tool up.
+The ReadMe file that comes with the version **0.2a** of the solver is good enough by itself, so anyone with a brain will be able to set that tool up. However, it's not open-source, so integrating it into my keygen is proven impossible.
 
 <details open>
 
@@ -223,18 +225,52 @@ typedef struct _BINKEY {
 
 In case you want to explore further, the source code of `pidgen.dll` and all its functions is available within this repository, in the "pidgen" folder.
 
-### Generating valid keys
+### Reversing the private key
 
-To create the CD-key generation algorithm we must compute the corresponding private key using the public key supplied with `pidgen.dll`,
+If we want to generate valid product keys for Windows XP, we must compute the corresponding private key using the public key supplied with `pidgen.dll`,
 which means we have to reverse-solve the one-way ECC task. 
 
-Judging by the key exposed in BINK, p is a prime number with a length of **384 bits**.
-The computation difficulty using the most efficient Pollard's Rho algorithm with asymptotic complexity $O(\sqrt{n})$ would be at least $O(2^{168})$, but lucky for us,
-Microsoft limited the value of the signature to 55 bits in order to reduce the amount of matching product keys, reducing the difficulty
-to a far more manageable $O(2^{28})$.
+Judging by the key located in BINK, the curve order is **384 bits** long in Windows XP and **512 bits** long in Server 2003 / XP x64 respectively.
+The computation difficulty using the most efficient Pollard's Rho algorithm with asymptotic complexity $O(\sqrt{n})$ would be at least $O(2^{168})$ for Windows XP, and $O(2^{256})$ for Windows Server 2003, but lucky for us,
+Microsoft limited the value of the signature to 55 bits in Windows XP and 62 bits in Windows Server 2003 in order to reduce the amount of matching product keys, reducing the difficulty to a far more manageable $O(2^{28})$ / $O(2^{31})$.
 
-The private key was, of course, conveniently computed before us in just 6 hours on a Celeron 800 machine.
+As mentioned before, there's only one public tool that satisfies our current needs, which is the ECDLP solver by Mr. HAANDI.<br>
 
+To compute the private key, we will need to supply the tool with the public ECC values located in the BINK resource, as well as the order `genOrder` of the base point `G(Gx; Gy)`.
+The order of the base point can be computed using SageMath.
+
+**Here's the basic algorithm I used to reverse the Windows 98 private key:**
+1. Compute the order of the base point using **SageMath**. In SageMath, execute the following commands:
+    1) `E = EllipticCurve(GF(p), [0, 0, 0, a, b])`, where `p`, `a` and `b` are decimally represented elliptic curve parameters from the BINK resource.
+    2) `G = E(Gx, Gy)`, where `Gx` and `Gy` are decimally represented base point coordinates from the BINK resource.
+    3) `K = E(Kx, Ky)`, where `Kx` and `Ky` are decimally represented public key coordinates from the BINK resource.
+    4) `n = G.order()`, `n` will be the computed order of the base point. **It may take some time to compute, even on the newest builds.**
+    5) Factor the order using `factor(n)`. Microsoft used prime numbers for the point orders, so if it returns the number itself, it's completely normal.
+    6) Save the resulting factors of the order somewhere.
+    7) `-K` will give you the inverse of the public key in a projective plane with coordinates `(x : y : z)`. Save the `y` coordinate somewhere, it is required to generate a correct private key.
+2. Compute the private key using **ECDLP Solver v0.2a**.
+    1) The tool comes with a template job `job_template.txt` and a ReadMe file. It's necessary to understand how the tool works to use it.
+    2) Insert all public elliptic curve values from the BINK resource, **except the `Ky` coordinate**. To generate a correct private key, **you must use the inverse coordinate `-Ky` you have calculated in SageMath earlier.**
+    3) Insert the factors of the base point order `n` and specify the factor count. It will very likely be `1`, as Microsoft mainly uses primes for their generator orders.
+    4) Run the tool `<arch> ECDLP Solver.exe <job_name>.txt` and wait until it calculates the private key `k = %d` for you.
+
+Here's an example of the Windows XP job `job_xp.txt` that yields the correct private key for the ECDLP Solver.
+
+```pascal
+GF := GF(22604814143135632990679956684344311209819952803216271952472204855524756275151440456421260165232069708317717961315241);
+E := EllipticCurve([GF|1,0]);
+G := E![10910744922206512781156913169071750153028386884676208947062808346072531411270489432930252839559606812441712224597826,19170993669917204517491618000619818679152109690172641868349612889930480365274675096509477191800826190959228181870174];
+K := E![14399230353963643339712940015954061581064239835926823517419716769613937039346822269422480779920783799484349086780408,17120082747148185997450361756610881166187863099877353630300913555824935802439591336620545428308962346299700128114607];
+/*
+FactorCount:=1;
+61760995553426173
+*/
+```
+
+And the ECDLP Solver output for it:
+![ECDLP Solver Output](https://github.com/Endermanch/XPKeygen/assets/44542704/ca018eae-ae33-41e5-a689-2c17da972184)
+
+### Validating / generating product keys
 The rest of the job is done within the code of this keygen.
 
 
