@@ -1,6 +1,6 @@
 # XPKeygen
-A Windows XP / Windows Server 2003 VLK key generator. This tool allows you to generate _valid Windows XP keys_ based on the _raw product key_, which can be random.
-The **Raw Product Key (RPK)** is supplied in a form of 9 digits `XXX-YYYYYY` and is only necessary to generate a Windows XP Key.
+A Windows XP / Windows Server 2003 VLK key generator. This tool allows you to generate _valid Windows XP keys_ based on the _Raw Product Key_, which can be random.
+The **Raw Product Key (RPK)** is supplied in form of 9 digits `XXX-YYYYYY` and is only necessary to generate a Windows XP Key.
 
 ![image](https://user-images.githubusercontent.com/44542704/231724854-4517f3a1-2330-4e70-83ae-6c52fa1b4745.png)
 
@@ -35,24 +35,22 @@ We need to use a random Raw Product Key as a base to generate a Product ID in a 
 
 ### Product ID
 
-| Digits | Meaning                                                |
-|-------:|:-------------------------------------------------------|
-|  AAAAA | OS Family constant                                     |
-|    BBB | Most significant 3 digits of the RPK                   |
-| CCCCCC | Least significant 6 digits of the RPK                  |
-|      S | Check digit                                            |
-|     DD | Index of the public key used to verify the Product Key |
-|    EEE | Random 3-digit number                                  |
+| Digits | Meaning               |
+|-------:|:----------------------|
+|  AAAAA | OS Family constant    |
+|    BBB | Channel ID            |
+| CCCCCC | Sequence Number       |
+|      S | Check digit           |
+|     DD | Public key index      |
+|    EEE | Random 3-digit number |
+
 
 The OS Family constant `AAAAA` is different for each series of Windows XP. For example, it is 76487 for SP3.
-
-The `BBB` and `CCCCCC` sections essentially directly correspond to the Raw Product Key. If the RPK is `XXXYYYYYY`, these two sections
-will transform to `XXX` and `YYYYYY` respectively.
-
+The `BBB` and `CCCCCC` sections essentially encode the Raw Product Key. For example, if the first section is equal to `XXX` and the second section is equal to `YYYYYY`, the Raw Product Key will be encoded as `XXX-YYYYYY`.
 The check digit `S` is picked so that the sum of all `C` digits with it added makes a number divisible by 7.
 
 The public key index `DD` lets us know which public key was used to successfully verify the authenticity of our Product Key.
-For example, it's 22 for Professional keys and 23 for VLK keys.
+For example, it's `22` for Professional keys and `23` for VLK keys.
 
 A random number `EEE` is used to generate a different Installation ID each time.
 
