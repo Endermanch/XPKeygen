@@ -12,6 +12,16 @@ Head over to the [**Releases**](https://github.com/Endermanch/XPKeygen/releases)
 ## *The problem*
 **In general, the only thing that separates us from generating valid Windows XP keys for EVERY EDITION and EVERY BUILD is the lack of respective private keys generated from their public counterparts inside `pidgen.dll`**. There's no code for the elliptic curve discrete logarithm function widely available online, there's only vague information on how to do it.
 
+The problem has been partially solved. The BINK resource was not encoded in any way and the data was just sequentially written to the resource. **sk00ter** also fully explained the BINK format on the MDL forums.
+Utilizing prior community knowledge on the subject, I wrote a BINK Reader in Python 3. The file is public in this repository, [click here](https://github.com/Endermanch/XPKeygen/blob/main/BINKReader.py) to view the source code.
+
+The discrete logarithm solution is the most unexplored area of research as of **May 28th, 2023**. However, my friend **nephacks** did find that elusive tool to solve that difficult problem in the darkest corners of the internet.
+It's called ECDLP (Elliptic Curve Discrete Logarithm Problem) Solver by Mr. HAANDI. Since it was extremely frustrating to find online, I did reupload it on my website. You can download the tool [here](https://dl.malwarewatch.org/software/advanced/ecc-research-tools/).
+
+The ReadMe file that comes with the version 0.2a of the solver is good enough by itself, so anyone with a brain will be able to set that tool up.
+
+<details open>
+
 In the ideal scenario, the keygen would ask you for a BINK-resource extracted from `pidgen.dll`, which it would then unpack into the following segments:
 * Public key (`pubX`; `pubY`)
 * Generator (`genX`; `genY`)
@@ -22,13 +32,13 @@ Knowing these segments, the keygen would bruteforce the geneator order `genOrder
 
 Once the keygen finishes bruteforcing the correct private key, the task boils down to actually generating a key, **which this keygen does**.
 To give you a better perspective, I can provide you with the flow of the ideal keygen. Crossed out is what my keygen implements:
-* BINK resource extraction
+* ~~BINK resource extraction~~
 * Bruteforce Elliptic Curve discrete logarithm solution (`genOrder`, `privateKey`)
 * ~~Product Key processing mechanism~~
 * ~~Windows XP key generation~~
 * ~~Windows XP key validation~~
 * ~~Windows Server 2003 key generation~~
-* ~~Windows Server 2003 key validation~~
+</details>
 
 ## Principle of operation
 We need to use a random Raw Product Key as a base to generate a Product ID in a form of `AAAAA-BBB-CCCCCCS-DDEEE`.
@@ -145,6 +155,7 @@ The structure of the BINK resource for Windows 98 and Windows XP is as follows:
 | `0x014C` | Public Key x-coordinate `Kx`                                         |
 | `0x0188` | Public Key y-coordinate `Ky`                                         |
 
+Each segment is marked with a different color, the BINK header values are the same.
 ![BINK](https://github.com/Endermanch/XPKeygen/assets/44542704/497ad018-884f-41af-ba89-633202d30328)
 
 Windows Server 2003 and Windows XP x64 implement it differently:
@@ -169,7 +180,7 @@ Windows Server 2003 and Windows XP x64 implement it differently:
 | `0x0168` | Public Key x-coordinate `Kx`                                         |
 | `0x01A8` | Public Key y-coordinate `Ky`                                         |
 
-And here's my implementation for the BINK Reader in C:
+And here are my structure prototypes made for the BINK Reader in C:
 ```c
 typedef struct _EC_BYTE_POINT {
     CHAR x[256];    // x-coordinate of the point on the elliptic curve.
