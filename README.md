@@ -127,45 +127,47 @@ OEM keys respectively.
 
 The structure of the BINK resource for Windows 98 and Windows XP is as follows:
 
-|   Offset | Value                                          |
-|---------:|:-----------------------------------------------|
-| `0x0000` | BINK ID                                        |
-| `0x0004` | Size of BINKEY structure in bytes              |
-| `0x0008` | Header length                                  |
-| `0x000C` | Checksum                                       |
-| `0x0010` | Number-encoded date (BINKEY version)           |
-| `0x0014` | ECC curve order size (always `12` in practice) |
-| `0x0018` | Hash length (always `28` in practice)          |
-| `0x001C` | Signature length (always `55` in practice)     |
-| `0x0020` | Finite Field Order `p`                         |
-| `0x005C` | Curve Parameter `a`                            |
-| `0x0098` | Curve Parameter `b`                            |
-| `0x00D4` | Base Point x-coordinate `Gx`                   |
-| `0x0110` | Base Point y-coordinate `Gy`                   |
-| `0x014C` | Public Key x-coordinate `Kx`                   |
-| `0x0188` | Public Key y-coordinate `Ky`                   |
+|   Offset | Value                                                                |
+|---------:|:---------------------------------------------------------------------|
+| `0x0000` | BINK ID                                                              |
+| `0x0004` | Size of BINKEY structure in bytes (always `0x16C` in practice)       |
+| `0x0008` | Header length (always `7` in practice)                               |
+| `0x000C` | Checksum                                                             |
+| `0x0010` | Number-encoded date - BINKEY version (always `19980206` in practice) |
+| `0x0014` | ECC curve order size (always `12` in practice)                       |
+| `0x0018` | Hash length (always `28` in practice)                                |
+| `0x001C` | Signature length (always `55` in practice)                           |
+| `0x0020` | Finite Field Order `p`                                               |
+| `0x005C` | Curve Parameter `a`                                                  |
+| `0x0098` | Curve Parameter `b`                                                  |
+| `0x00D4` | Base Point x-coordinate `Gx`                                         |
+| `0x0110` | Base Point y-coordinate `Gy`                                         |
+| `0x014C` | Public Key x-coordinate `Kx`                                         |
+| `0x0188` | Public Key y-coordinate `Ky`                                         |
 
 ![BINK](https://github.com/Endermanch/XPKeygen/assets/44542704/497ad018-884f-41af-ba89-633202d30328)
 
 Windows Server 2003 and Windows XP x64 implement it differently:
 
-|   Offset | Value                                          |
-|---------:|:-----------------------------------------------|
-| `0x0000` | BINK ID                                        |
-| `0x0004` | Size of BINKEY structure in bytes              |
-| `0x0008` | Header length                                  |
-| `0x000C` | Checksum                                       |
-| `0x0010` | Number-encoded date (BINKEY version)           |
-| `0x0014` | ECC curve order size (always `12` in practice) |
-| `0x0018` | Hash length (always `28` in practice)          |
-| `0x001C` | Signature length (always `55` in practice)     |
-| `0x0020` | Finite Field Order `p`                         |
-| `0x005C` | Curve Parameter `a`                            |
-| `0x0098` | Curve Parameter `b`                            |
-| `0x00D4` | Base Point x-coordinate `Gx`                   |
-| `0x0110` | Base Point y-coordinate `Gy`                   |
-| `0x014C` | Public Key x-coordinate `Kx`                   |
-| `0x0188` | Public Key y-coordinate `Ky`                   |
+|   Offset | Value                                                                |
+|---------:|:---------------------------------------------------------------------|
+| `0x0000` | BINK ID                                                              |
+| `0x0004` | Size of BINKEY structure in bytes                                    |
+| `0x0008` | Header length (always `9` in practice)                               |
+| `0x000C` | Checksum                                                             |
+| `0x0010` | Number-encoded date - BINKEY version (always `20020420` in practice) |
+| `0x0014` | ECC curve order size (always `16` in practice)                       |
+| `0x0018` | Hash length (always `31` in practice)                                |
+| `0x001C` | Signature length (always `62` in practice)                           |
+| `0x0020` | Backend authentication value length (always `12` in practice)        |
+| `0x0024` | Product ID length (always `20` in practice)                          |
+| `0x0028` | Finite Field Order `p`                                               |
+| `0x0068` | Curve Parameter `a`                                                  |
+| `0x00A8` | Curve Parameter `b`                                                  |
+| `0x00E8` | Base Point x-coordinate `Gx`                                         |
+| `0x0128` | Base Point y-coordinate `Gy`                                         |
+| `0x0168` | Public Key x-coordinate `Kx`                                         |
+| `0x01A8` | Public Key y-coordinate `Ky`                                         |
 
 And here's my implementation for the BINK Reader in C:
 ```c
