@@ -463,7 +463,7 @@ LRESULT CALLBACK WNDProc(HWND hWindow, UINT uMessage, WPARAM wParam, LPARAM lPar
             }
 
             case IDC_BUTTON4: {
-                ul32 msDigits = randomRange(0, 999),
+                DWORD msDigits = randomRange(0, 999),
                      lsDigits = randomRange(0, 999'999);
 
                 WCHAR pBSection[4]{}, pCSection[8]{};

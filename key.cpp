@@ -4,47 +4,24 @@
 
 #include "header.h"
 
-/* Converts from byte sequence to the CD-key. */
-void base24(char *cdKey, ul32 *byteSeq) {
-    byte rbs[16];
-    BIGNUM *z;
-
-    // Copy byte sequence to the reversed byte sequence.
-    memcpy(rbs, byteSeq, sizeof(rbs));
-
-    // Skip trailing zeroes and reverse y.
-    int length;
-
-    for (length = 15; rbs[length] == 0; length--);
-    endiannessConvert(rbs, ++length);
-
-    // Convert reversed byte sequence to BigNum z.
-    z = BN_bin2bn(rbs, length, nullptr);
-
-    // Divide z by 24 and convert the remainder to a CD-key char.
-    cdKey[25] = 0;
-
-    for (int i = 24; i >= 0; i--)
-        cdKey[i] = charset[BN_div_word(z, 24)];
-
-    BN_free(z);
-}
-
 /* Converts from CD-key to a byte sequence. */
-void unbase24(ul32 *byteSeq, const char *cdKey) {
-    byte pDecodedKey[PK_LENGTH + NULL_TERMINATOR]{};
+bool unbase24(BYTE *byteSeq, CHAR(&pKey)[PK_LENGTH + NULL_TERMINATOR]) {
+    BYTE pDecodedKey[PK_LENGTH + NULL_TERMINATOR]{};
     BIGNUM *y = BN_new();
 
     BN_zero(y);
 
     // Remove dashes from the CD-key and put it into a Base24 byte array.
-    for (int i = 0, k = 0; i < strlen(cdKey) && k < PK_LENGTH; i++) {
-        for (int j = 0; j < 24; j++) {
-            if (cdKey[i] != '-' && cdKey[i] == charset[j]) {
+    for (int i = 0, k = 0; i < strlen(pKey) && k < PK_LENGTH; i++) {
+        for (int j = 0; j < strlen(pCharset); j++) {
+            if (pKey[i] == pCharset[j]) {
                 pDecodedKey[k++] = j;
                 break;
             }
         }
+
+        // If the k-index hasn't been incremented, and it's due to the key being garbage, quit.
+        if (pKey[i] != '-' && k == i) return false;
     }
 
     // Empty byte sequence.
@@ -52,7 +29,7 @@ void unbase24(ul32 *byteSeq, const char *cdKey) {
 
     // Calculate the weighed sum of byte array elements.
     for (int i = 0; i < PK_LENGTH; i++) {
-        BN_mul_word(y, PK_LENGTH - 1);
+        BN_mul_word(y, strlen(pCharset));
         BN_add_word(y, pDecodedKey[i]);
     }
 
@@ -60,16 +37,44 @@ void unbase24(ul32 *byteSeq, const char *cdKey) {
     int n = BN_num_bytes(y);
 
     // Place the generated code into the byte sequence.
-    BN_bn2bin(y, (byte *)byteSeq);
+    BN_bn2bin(y, byteSeq);
     BN_free(y);
 
     // Reverse the byte sequence.
-    endiannessConvert((byte *) byteSeq, n);
+    endian(byteSeq, n);
+
+    return true;
+}
+
+/* Converts from byte sequence to the CD-key. */
+void base24(BYTE *byteSeq, CHAR(&pKey)[PK_LENGTH + NULL_TERMINATOR]) {
+    BYTE rbyteSeq[16];
+    BIGNUM *z;
+
+    // Copy byte sequence to the reversed byte sequence.
+    memcpy(rbyteSeq, byteSeq, sizeof(rbyteSeq));
+
+    // Skip trailing zeroes and reverse y.
+    int length;
+
+    for (length = 15; rbyteSeq[length] == 0; length--);
+    endian(rbyteSeq, ++length);
+
+    // Convert reversed byte sequence to BigNum z.
+    z = BN_bin2bn(rbyteSeq, length, nullptr);
+
+    // Divide z by 24 and convert the remainder to a CD-key char.
+    pKey[PK_LENGTH] = '\0';
+
+    for (int i = PK_LENGTH - 1; i >= 0; i--)
+        pKey[i] = pCharset[BN_div_word(z, 24)];
+
+    BN_free(z);
 }
 
 /* Formats Windows XP key output. */
 void formatXP(WCHAR *pBSection, WCHAR *pCSection, WCHAR *pText) {
-    WCHAR pFPK[32]{};
+    WCHAR pDashedKey[PK_LENGTH + 4 + NULL_TERMINATOR]{};
 
     int pSSection = 0;
 
@@ -79,65 +84,69 @@ void formatXP(WCHAR *pBSection, WCHAR *pCSection, WCHAR *pText) {
     while (pSSection < 0)
         pSSection += 7;
 
-    char pKey[PK_LENGTH + NULL_TERMINATOR]{};
-    ul32 msDigits = _wtoi(pBSection),
-        lsDigits = _wtoi(pCSection);
+    CHAR pKey[PK_LENGTH + NULL_TERMINATOR]{};
+    DWORD pChannelID = _wtoi(pBSection),
+        pSequence = _wtoi(pCSection);
 
-    ul32 nRPK = msDigits * 1'000'000 + lsDigits,
-        hash = 0,
-        bKey[4]{},
-        bSig[2]{};
+    DWORD pHash;
+    QWORD pRaw[2]{},
+          pSignature;
 
-    bool bValid = keyXP(pKey, nRPK);
+    bool bValid = keyXP(pKey, pChannelID, pSequence, false);
 
-    unbase24(bKey, pKey);
-    unpackXP(nullptr, &hash, bSig, bKey);
+    DWORD pSerial;
+    BOOL pUpgrade = false;
+
+    unbase24((BYTE *)pRaw, pKey);
+    unpackXP(pRaw, pUpgrade, pSerial, pHash, pSignature);
 
     for (int i = 0; i < 5; i++)
-        wsprintfW(pFPK, L"%s%s%.5S", pFPK, i != 0 ? L"-" : L"", &pKey[5 * i]);
+        wsprintfW(pDashedKey, L"%s%s%.5S", pDashedKey, i != 0 ? L"-" : L"", &pKey[5 * i]);
 
-    wsprintfW(
+    swprintf(
         pText,
-        L"Product ID:\tPPPPP-%03d-%06d%d-23XXX\r\n\r\nBytecode:\t%08lX %08lX %08lX %08lX\r\nHash:\t\t%08lX\r\nSignature:\t%08lX %08lX\r\nCurve Point:\t%s\r\n\r\n%s\r\n",
-        nRPK / 1'000'000,
-        nRPK % 1'000'000,
+        L"Product ID:\tPPPPP-%03d-%06d%d-23XXX\r\n\r\nBytecode:\t%016llX %016llX\r\nHash:\t\t%lX\r\nSignature:\t%llX\r\nCurve Point:\t%s\r\n\r\n%s\r\n",
+        pSerial / 1'000'000,
+        pSerial % 1'000'000,
         pSSection,
-        bKey[3], bKey[2], bKey[1], bKey[0],
-        hash,
-        bSig[1], bSig[0],
+        pRaw[1], pRaw[0],
+        pHash,
+        pSignature,
         bValid ? L"True" : L"False",
-        pFPK
+        pDashedKey
     );
 }
 
 /* Formats Windows Server 2003 key output. */
 void formatServer(WCHAR *pText) {
-    WCHAR pFPK[32]{};
+    WCHAR pDashedKey[32]{};
 
     char pKey[PK_LENGTH + NULL_TERMINATOR]{};
-    ul32 hash = 0,
-        osFamily = 0,
-        prefix = 0,
-        bKey[4]{},
-        bSig[2]{};
+    DWORD pHash = 0,
+        pChannelID = 0,
+        pAuthInfo = 0;
 
-    bool bValid = keyServer(pKey);
+    QWORD pRaw[2]{},
+        pSignature;
 
-    unbase24(bKey, pKey);
-    unpackServer(&osFamily, &hash, bSig, &prefix, bKey);
+    BOOL pUpgrade = false;
+    bool bValid = keyServer(pKey, 640, 0, pUpgrade);
+
+    unbase24((BYTE *)pRaw, pKey);
+    unpackServer(pRaw, pUpgrade, pChannelID, pHash, pSignature, pAuthInfo);
 
     for (int i = 0; i < 5; i++)
-        wsprintfW(pFPK, L"%s%s%.5S", pFPK, i != 0 ? L"-" : L"", &pKey[5 * i]);
+        wsprintfW(pDashedKey, L"%s%s%.5S", pDashedKey, i != 0 ? L"-" : L"", &pKey[5 * i]);
 
-    wsprintfW(
+    swprintf(
         pText,
-        L"Bytecode:\t%08lX %08lX %08lX %08lX\r\nOS Family:\t%d\r\nHash:\t\t%08lX\r\nSignature:\t%08lX %08lX\r\nPrefix:\t\t%04lX\r\nCurve Point:\t%s\r\n\r\n%s\r\n",
-        bKey[3], bKey[2], bKey[1], bKey[0],
-        osFamily,
-        hash,
-        bSig[1], bSig[0],
-        prefix,
+        L"Bytecode:\t%016llX %016llX\r\nChannel ID:\t%d\r\nHash:\t\t%lX\r\nSignature:\t%llX\r\nAuthInfo:\t%d\r\nCurve Point:\t%s\r\n\r\n%s\r\n",
+        pRaw[1], pRaw[0],
+        pChannelID,
+        pHash,
+        pSignature,
+        pAuthInfo,
         bValid ? L"True" : L"False",
-        pFPK
+        pDashedKey
     );
 }

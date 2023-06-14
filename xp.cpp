@@ -4,6 +4,7 @@
 
 #include "header.h"
 
+/* Windows XP */
 const char pXP[] = "92ddcf14cb9e71f4489a2e9ba350ae29454d98cb93bdbcc07d62b502ea12238ee904a8b20d017197aae0c103b32713a9";
 const long aXP = 1;
 const long bXP = 0;
@@ -12,7 +13,7 @@ const long bXP = 0;
 const char genXXP[] = "46E3775ECE21B0898D39BEA57050D422A0AF989E497962BAEE2CB17E0A28D5360D5476B8DC966443E37A14F1AEF37742";
 const char genYXP[] = "7C8E741D2C34F4478E325469CD491603D807222C9C4AC09DDB2B31B3CE3F7CC191B3580079932BC6BEF70BE27604F65E";
 
-// Inverse of the public key
+// The public key
 const char pubXXP[] = "5D8DBE75198015EC41C45AAB6143542EB098F6A5CC9CE4178A1B8A1E7ABBB5BC64DF64FAF6177DC1B0988AB00BA94BF8";
 const char pubYXP[] = "23A2909A0B4803C89F910C7191758B48746CEA4D5FF07667444ACDB9512080DBCA55E6EBF30433672B894F44ACE92BFA";
 
@@ -22,251 +23,288 @@ const char genOrderXP[] = "DB6B4C58EFBAFD";
 // The private key was computed in 10 hours using a Pentium III 450
 const char privateKeyXP[] = "565B0DFF8496C8";
 
-/* Unpacks the Product Key. */
-void unpackXP(ul32 *serial, ul32 *hash, ul32 *sig, ul32 *raw) {
 
+/* Windows 98
+const char pXP[] = "ec224ff2613a9fe1411b51e89634643f79a272402ee146b012a3f71098c7e75df4bf8b3713c4f0ce56691ce56b9b5029";
+const long aXP = 1;
+const long bXP = 0;
+
+// Base point G (Generator)
+const char genXXP[] = "b5e1957b19951b5523204a62fd83ab22056f59a13bf8aaaf16ac10b7540f8ea92ba28dbfa68996fa12510c024f912340";
+const char genYXP[] = "a84fbc02f311b1fd4521773e01821bd047f067c496ad54ce1504315cb88667d69130caa25efb2cb1e479ed50efb40d6b";
+
+// The public key
+const char pubXXP[] = "26ea9efe57ab6da485225a13ed66533c143f81b7b9528e38c8568bb726a8f0f5607da0e8d85aebf2e1425758b409e811";
+const char pubYXP[] = "1a7c4cebe5f3919e96876a447a813efcd920979e9610d2b2146a04fab1041b31ae65e24efa3e0b0d61622483655716c2";
+
+// The order of G was computed in 18 hours using a Pentium III 450
+const char genOrderXP[] = "E778E33AEE6B3D";
+
+// The private key was computed in 10 hours using a Pentium III 450
+const char privateKeyXP[] = "B9E99B9BB9812E"; // "677A485D4BE4A0";*/
+
+
+/* Unpacks a Windows XP-like Product Key. */
+VOID unpackXP(
+    QWORD (&pRaw)[2],
+     BOOL &pUpgrade,
+    DWORD &pSerial,
+    DWORD &pHash,
+    QWORD &pSignature
+) {
     // We're assuming that the quantity of information within the product key is at most 114 bits.
     // log2(24^25) = 114.
 
-    // Serial = Bits [0..30] -> 31 bits
-    if (serial)
-        serial[0] = raw[0] & 0x7fffffff;
- 
-    // Hash (e) = Bits [31..58] -> 28 bits
-    if (hash)
-        hash[0] = ((raw[0] >> 31) | (raw[1] << 1)) & 0xfffffff;
- 
-    // Signature (s) = Bits [59..113] -> 55 bits
-    if (sig) {
-        sig[0] = (raw[1] >> 27) | (raw[2] << 5);
-        sig[1] = (raw[2] >> 27) | (raw[3] << 5);
-    }
+    // Upgrade = Bit 0
+    pUpgrade = FIRSTNBITS(pRaw[0], 1);
+
+    // Serial = Bits [1..30] -> 30 bits
+    pSerial = NEXTSNBITS(pRaw[0], 30, 1);
+
+    // Hash = Bits [31..58] -> 28 bits
+    pHash = NEXTSNBITS(pRaw[0], 28, 31);
+
+    // Signature = Bits [59..113] -> 56 bits
+    pSignature = FIRSTNBITS(pRaw[1], 51) << 5 | NEXTSNBITS(pRaw[0], 5, 59);
 }
 
-/* Repacks the Product Key. */
-void packXP(ul32 *raw, ul32 *serial, ul32 *hash, ul32 *sig) {
-    raw[0] = serial[0] | ((hash[0] & 1) << 31);
-    raw[1] = (hash[0] >> 1) | ((sig[0] & 0x1f) << 27);
-    raw[2] = (sig[0] >> 5) | (sig[1] << 27);
-    raw[3] = sig[1] >> 5;
+/* Packs a Windows XP-like Product Key. */
+VOID packXP(
+    QWORD (&pRaw)[2],
+     BOOL pUpgrade,
+    DWORD pSerial,
+    DWORD pHash,
+    QWORD pSignature
+) {
+    // The quantity of information the key provides is 114 bits.
+    // We're storing it in 2 64-bit quad-words with 14 trailing bits.
+    // 64 * 2 = 128
+
+    // Signature [114..59] <- Hash [58..31] <- Serial [30..1] <- Upgrade [0]
+    pRaw[0] = FIRSTNBITS(pSignature, 5) << 59 | FIRSTNBITS(pHash, 28) << 31 | (QWORD)pSerial << 1 | pUpgrade;
+    pRaw[1] = NEXTSNBITS(pSignature, 51, 5);
 }
 
-/* Verify Product Key */
-bool verifyXPKey(EC_GROUP *eCurve, EC_POINT *generator, EC_POINT *publicKey, char *cdKey) {
-    BN_CTX *context = BN_CTX_new();
-    
+/* Verifies a Windows XP-like Product Key. */
+BOOL verifyXPKey(
+    EC_GROUP *eCurve,
+    EC_POINT *basePoint,
+    EC_POINT *publicKey,
+        CHAR (&pKey)[PK_LENGTH + NULL_TERMINATOR]
+) {
+    BN_CTX *numContext = BN_CTX_new();
+
+    QWORD pRaw[2]{},
+          pSignature;
+
+    DWORD pData,
+          pSerial,
+          pHash;
+
+    BOOL  pUpgrade;
+
     // Convert Base24 CD-key to bytecode.
-    ul32 bKey[4]{};
-    ul32 pID, checkHash, sig[2];
+    unbase24((BYTE *)pRaw, pKey);
 
-    unbase24(bKey, cdKey);
+    // Extract RPK, hash and signature from bytecode.
+    unpackXP(pRaw, pUpgrade, pSerial, pHash, pSignature);
 
-    // Extract data, hash and signature from the bytecode.
-    unpackXP(&pID, &checkHash, sig, bKey);
+    pData = pSerial << 1 | pUpgrade;
 
-    // e = Hash
-    // s = Signature
-    BIGNUM *e, *s;
+    /*
+     *
+     * Scalars:
+     *  e = Hash
+     *  s = Schnorr Signature
+     *
+     * Points:
+     *  G(x, y) = Generator (Base Point)
+     *  K(x, y) = Public Key
+     *
+     * Equation:
+     *  P = sG + eK
+     *
+     */
 
-    // Put hash word into BigNum e.
-    e = BN_new();
-    BN_set_word(e, checkHash);
+    BIGNUM *e = BN_lebin2bn((BYTE *)&pHash, sizeof(pHash), nullptr),
+           *s = BN_lebin2bn((BYTE *)&pSignature, sizeof(pSignature), nullptr),
+           *x = BN_new(),
+           *y = BN_new();
 
-    // Reverse signature and create a new BigNum s.
-    endiannessConvert((byte *) sig, sizeof(sig));
-    s = BN_bin2bn((byte *)sig, sizeof(sig), nullptr);
+    // Create 2 points on the elliptic curve.
+    EC_POINT *t = EC_POINT_new(eCurve);
+    EC_POINT *p = EC_POINT_new(eCurve);
 
-    // Create x and y.
-    BIGNUM *x = BN_new();
-    BIGNUM *y = BN_new();
+    // t = sG
+    EC_POINT_mul(eCurve, t, nullptr, basePoint, s, numContext);
 
-    // Create 2 new points on the existing elliptic curve.
-    EC_POINT *u = EC_POINT_new(eCurve);
-    EC_POINT *v = EC_POINT_new(eCurve);
+    // P = eK
+    EC_POINT_mul(eCurve, p, nullptr, publicKey, e, numContext);
 
-    // EC_POINT_mul calculates r = generator * n + q * m.
-    // v = s * generator + e * (-publicKey)
+    // P += t
+    EC_POINT_add(eCurve, p, t, p, numContext);
 
-    // u = generator * s
-    EC_POINT_mul(eCurve, u, nullptr, generator, s, context);
+    // x = P.x; y = P.y;
+    EC_POINT_get_affine_coordinates(eCurve, p, x, y, numContext);
 
-    // v = publicKey * e
-    EC_POINT_mul(eCurve, v, nullptr, publicKey, e, context);
+    BYTE msgDigest[SHA_DIGEST_LENGTH]{},
+         msgBuffer[SHA_MSG_LENGTH_XP]{},
+         xBin[FIELD_BYTES]{},
+         yBin[FIELD_BYTES]{};
 
-    // v += u
-    EC_POINT_add(eCurve, v, u, v, context);
+    // Convert resulting point coordinates to bytes.
+    BN_bn2lebin(x, xBin, FIELD_BYTES);
+    BN_bn2lebin(y, yBin, FIELD_BYTES);
 
-    // EC_POINT_get_affine_coordinates() sets x and y, either of which may be nullptr, to the corresponding coordinates of p.
-    // x = v.x; y = v.y;
-    EC_POINT_get_affine_coordinates(eCurve, v, x, y, context);
+    // Assemble the SHA message.
+    memcpy((void *)&msgBuffer[0], (void *)&pData, 4);
+    memcpy((void *)&msgBuffer[4], (void *)xBin, FIELD_BYTES);
+    memcpy((void *)&msgBuffer[4 + FIELD_BYTES], (void *)yBin, FIELD_BYTES);
 
+    // compHash = SHA1(pSerial || P.x || P.y)
+    SHA1(msgBuffer, SHA_MSG_LENGTH_XP, msgDigest);
 
-    byte buf[FIELD_BYTES], md[SHA_DIGEST_LENGTH], t[4];
-    ul32 newHash;
+    // Translate the byte digest into a 32-bit integer - this is our computed hash.
+    // Truncate the hash to 28 bits.
+    DWORD compHash = BYDWORD(msgDigest) >> 4 & BITMASK(28);
 
-    SHA_CTX hContext;
-
-    // h = First32(SHA-1(pID || v.x || v.y)) >> 4
-    SHA1_Init(&hContext);
-
-    // Chop Product ID into 4 bytes.
-    t[0] = (pID & 0xff);                 // First 8 bits
-    t[1] = (pID & 0xff00) >> 8;          // Second 8 bits
-    t[2] = (pID & 0xff0000) >> 16;       // Third 8 bits
-    t[3] = (pID & 0xff000000) >> 24;     // Fourth 8 bits
-
-    // Hash chunk of data.
-    SHA1_Update(&hContext, t, sizeof(t));
-
-    // Empty buffer, place v.x in little-endian.
-    memset(buf, 0, FIELD_BYTES);
-    BN_bn2bin(x, buf);
-    endiannessConvert(buf, FIELD_BYTES);
-
-    // Hash chunk of data.
-    SHA1_Update(&hContext, buf, FIELD_BYTES);
-
-    // Empty buffer, place v.y in little-endian.
-    memset(buf, 0, FIELD_BYTES);
-    BN_bn2bin(y, buf);
-    endiannessConvert(buf, FIELD_BYTES);
-
-    // Hash chunk of data.
-    SHA1_Update(&hContext, buf, FIELD_BYTES);
-
-    // Store the final message from hContext in md.
-    SHA1_Final(md, &hContext);
-
-    // h = First32(SHA-1(pID || v.x || v.y)) >> 4
-    newHash = (md[0] | (md[1] << 8) | (md[2] << 16) | (md[3] << 24)) >> 4;
-    newHash &= 0xfffffff;
-    
     BN_free(e);
     BN_free(s);
     BN_free(x);
     BN_free(y);
 
-    BN_CTX_free(context);
+    BN_CTX_free(numContext);
 
-    EC_POINT_free(u);
-    EC_POINT_free(v);
+    EC_POINT_free(t);
+    EC_POINT_free(p);
 
-    // If we managed to generate a key with the same hash, the key is correct.
-    return newHash == checkHash;
+    // If the computed hash checks out, the key is valid.
+    return compHash == pHash;
 }
 
-/* Generate a valid Product Key. */
-void generateXPKey(char *pKey, EC_GROUP *eCurve, EC_POINT *generator, BIGNUM *order, BIGNUM *privateKey, ul32 *pRaw) {
-    EC_POINT *r = EC_POINT_new(eCurve);
-    BN_CTX *ctx = BN_CTX_new();
+/* Generates a Windows XP-like Product Key. */
+VOID generateXPKey(
+    EC_GROUP *eCurve,
+    EC_POINT *basePoint,
+      BIGNUM *genOrder,
+      BIGNUM *privateKey,
+       DWORD pChannelID,
+       DWORD pSequence,
+        BOOL pUpgrade,
+        CHAR (&pKey)[PK_LENGTH + NULL_TERMINATOR]
+) {
+    BN_CTX *numContext = BN_CTX_new();
 
-    BIGNUM *c = BN_new();
-    BIGNUM *s = BN_new();
-    BIGNUM *x = BN_new();
-    BIGNUM *y = BN_new();
+    BIGNUM *c = BN_new(),
+           *s = BN_new(),
+           *x = BN_new(),
+           *y = BN_new();
 
-    ul32 bKey[4]{};
+    QWORD pRaw[2]{},
+          pSignature = 0;
+
+    // Data segment of the RPK.
+    DWORD pData = (pChannelID * 1'000'000 + pSequence) << 1 | pUpgrade;
 
     do {
-        ul32 hash = 0, sig[2]{};
-
-        memset(bKey, 0, 4);
+        EC_POINT *r = EC_POINT_new(eCurve);
 
         // Generate a random number c consisting of 384 bits without any constraints.
         BN_rand(c, FIELD_BITS, BN_RAND_TOP_ANY, BN_RAND_BOTTOM_ANY);
 
-        // r = generator * c;
-        EC_POINT_mul(eCurve, r, nullptr, generator, c, ctx);
+        // Pick a random derivative of the base point on the elliptic curve.
+        // R = cG;
+        EC_POINT_mul(eCurve, r, nullptr, basePoint, c, numContext);
 
-        // x = r.x; y = r.y;
-        EC_POINT_get_affine_coordinates(eCurve, r, x, y, ctx);
-        
-        SHA_CTX hContext;
-        byte md[SHA_DIGEST_LENGTH]{}, buf[FIELD_BYTES]{}, t[4]{};
+        // Acquire its coordinates.
+        // x = R.x; y = R.y;
+        EC_POINT_get_affine_coordinates(eCurve, r, x, y, numContext);
 
-        // h = (First-32(SHA1(pRaw, r.x, r.y)) >> 4
-        SHA1_Init(&hContext);
+        BYTE msgDigest[SHA_DIGEST_LENGTH]{},
+             msgBuffer[SHA_MSG_LENGTH_XP]{},
+             xBin[FIELD_BYTES]{},
+             yBin[FIELD_BYTES]{};
 
-        // Chop Raw Product Key into 4 bytes.
-        t[0] = (*pRaw & 0xff);
-        t[1] = (*pRaw & 0xff00) >> 8;
-        t[2] = (*pRaw & 0xff0000) >> 16;
-        t[3] = (*pRaw & 0xff000000) >> 24;
+        // Convert coordinates to bytes.
+        BN_bn2lebin(x, xBin, FIELD_BYTES);
+        BN_bn2lebin(y, yBin, FIELD_BYTES);
 
-        // Hash chunk of data.
-        SHA1_Update(&hContext, t, sizeof(t));
+        // Assemble the SHA message.
+        memcpy((void *)&msgBuffer[0], (void *)&pData, 4);
+        memcpy((void *)&msgBuffer[4], (void *)xBin, FIELD_BYTES);
+        memcpy((void *)&msgBuffer[4 + FIELD_BYTES], (void *)yBin, FIELD_BYTES);
 
-        // Empty buffer, place r.x in little-endiannessConvert.
-        memset(buf, 0, FIELD_BYTES);
-        BN_bn2bin(x, buf);
-        endiannessConvert(buf, FIELD_BYTES);
+        // pHash = SHA1(pSerial || R.x || R.y)
+        SHA1(msgBuffer, SHA_MSG_LENGTH_XP, msgDigest);
 
-        // Hash chunk of data.
-        SHA1_Update(&hContext, buf, FIELD_BYTES);
+        // Translate the byte digest into a 32-bit integer - this is our computed pHash.
+        // Truncate the pHash to 28 bits.
+        DWORD pHash = BYDWORD(msgDigest) >> 4 & BITMASK(28);
 
-        // Empty buffer, place r.y in little-endiannessConvert.
-        memset(buf, 0, FIELD_BYTES);
-        BN_bn2bin(y, buf);
-        endiannessConvert(buf, FIELD_BYTES);
+        /*
+         *
+         * Scalars:
+         *  c = Random multiplier
+         *  e = Hash
+         *  s = Signature
+         *  n = Order of G
+         *  k = Private Key
+         *
+         * Points:
+         *  G(x, y) = Generator (Base Point)
+         *  R(x, y) = Random derivative of the generator
+         *  K(x, y) = Public Key
+         *
+         * We need to find the signature s that satisfies the equation with a given hash:
+         *  P = sG + eK
+         *  s = ek + c (mod n) <- computation optimization
+         */
 
-        // Hash chunk of data.
-        SHA1_Update(&hContext, buf, FIELD_BYTES);
-
-        // Store the final message from hContext in md.
-        SHA1_Final(md, &hContext);
-
-        // h = (First-32(SHA1(pRaw, r.x, r.y)) >> 4
-        hash = (md[0] | (md[1] << 8) | (md[2] << 16) | (md[3] << 24)) >> 4;
-        hash &= 0xfffffff;
-        
-        /* s = privateKey * hash + c; */
-        // s = privateKey;
+         // s = ek;
         BN_copy(s, privateKey);
+        BN_mul_word(s, pHash);
 
-        // s *= hash;
-        BN_mul_word(s, hash);
+        // s += c (mod n)
+        BN_mod_add(s, s, c, genOrder, numContext);
 
-        // BN_mod_add() adds a to b % m and places the non-negative result in r.
-        // s = |s + c % order|;
-        BN_mod_add(s, s, c, order, ctx);
-
-        // Convert s from BigNum back to bytecode and reverse the endianness.
-        BN_bn2bin(s, (byte *)sig);
-        endiannessConvert((byte *)sig, BN_num_bytes(s));
+        // Translate resulting scalar into a 64-bit integer (the byte order is little-endian).
+        BN_bn2lebinpad(s, (BYTE *)&pSignature, BN_num_bytes(s));
 
         // Pack product key.
-        packXP(bKey, pRaw, &hash, sig);
-    } while (bKey[3] >= 0x40000);
-    // ↑ ↑ ↑
-    // bKey[3] can't be longer than 18 bits, else the signature part will make
-    // the CD-key longer than 25 characters.
+        packXP(pRaw, pUpgrade, pChannelID * 1'000'000 + pSequence, pHash, pSignature);
 
-    // Convert the key to Base24.
-    base24(pKey, bKey);
-    
+        EC_POINT_free(r);
+    } while (pSignature > BITMASK(55));
+    // ↑ ↑ ↑
+    // The signature can't be longer than 55 bits, else it will
+    // make the CD-key longer than 25 characters.
+
+    // Convert bytecode to Base24 CD-key.
+    base24((BYTE *)pRaw, pKey);
+
     BN_free(c);
     BN_free(s);
     BN_free(x);
     BN_free(y);
 
-    BN_CTX_free(ctx);
-    EC_POINT_free(r);
+    BN_CTX_free(numContext);
 }
 
-bool keyXP(char *pKey, ul32 nRaw) {
-    assert(nRaw <= 1'000'000'000);
+BOOL keyXP(
+     CHAR (&pKey)[PK_LENGTH + NULL_TERMINATOR],
+    DWORD nChannelID,
+    DWORD nSequence,
+     BOOL bUpgrade
+) {
+    // If the Channel ID or the random sequence aren't valid, quit.
+    if (nChannelID >= 1'000 || nSequence >= 1'000'000)
+        return false;
 
-    // We cannot produce a valid key without knowing the private key k. The reason for this is that
-    // we need the result of the function K(x; y) = kG(x; y).
     BIGNUM *privateKey = BN_new();
-
-    // We can, however, validate any given key using the available public key: {p, a, b, G, K}.
-    // genOrder the order of the generator G, a value we have to reverse -> Schoof's Algorithm.
     BIGNUM *genOrder = BN_new();
 
-    /* Computed data */
-    BN_hex2bn(&genOrder, genOrderXP);
     BN_hex2bn(&privateKey, privateKeyXP);
+    BN_hex2bn(&genOrder, genOrderXP);
 
     EC_POINT *genPoint, *pubPoint;
     EC_GROUP *eCurve = initializeEllipticCurve(
@@ -283,12 +321,8 @@ bool keyXP(char *pKey, ul32 nRaw) {
         &pubPoint
     );
 
-    // Shift left once.
-    nRaw <<= 1;
-
-    // Generate the key until it's valid. (In XP it's valid 100% of the times)
     do {
-        generateXPKey(pKey, eCurve, genPoint, genOrder, privateKey, &nRaw);
+        generateXPKey(eCurve, genPoint, genOrder, privateKey, nChannelID, nSequence, bUpgrade, pKey);
     } while (!verifyXPKey(eCurve, genPoint, pubPoint, pKey));
 
     return true;

@@ -61,10 +61,12 @@
 
 #include "header.h"
 
-byte charset[] = "BCDFGHJKMPQRTVWXY2346789";
+char pCharset[] = "BCDFGHJKMPQRTVWXY2346789";
 
-INT wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ WCHAR *pCmdLine, _In_ INT nCmdShow) {
+INT wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ WCHAR *pCmdLine, _In_ INT nCmdShow) {    
     srand(GetTickCount64());
+
+    //base(L"D:\\Desktop\\ECC Research\\pIDgen\\pidgenxp.dll");
 
     return InitializeWindow(hInstance);
 }

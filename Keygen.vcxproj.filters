@@ -19,12 +19,17 @@
     <ClCompile Include="windows.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="bink.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="D:\Software\Development\XPKeygen\header.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="resource.h" />
+    <ClInclude Include="resource.h">
+      <Filter>Resources</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -33,19 +38,38 @@
     <Filter Include="Source Files">
       <UniqueIdentifier>{DD359385-3E10-39A8-BDBE-E651CB1745C6}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Resources">
+      <UniqueIdentifier>{8c8a7e56-fe48-4168-8eb0-0715690de23e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="resource.rc" />
+    <Media Include="resources\neon.wav">
+      <Filter>Resources</Filter>
+    </Media>
+    <Media Include="resources\pxiii.wav">
+      <Filter>Resources</Filter>
+    </Media>
   </ItemGroup>
   <ItemGroup>
-    <Media Include="resources\neon.wav" />
-    <Media Include="resources\pxiii.wav" />
+    <Image Include="resources\ender.bmp">
+      <Filter>Resources</Filter>
+    </Image>
+    <Image Include="resources\icon.ico">
+      <Filter>Resources</Filter>
+    </Image>
+    <Image Include="resources\logo.bmp">
+      <Filter>Resources</Filter>
+    </Image>
+    <Image Include="resources\musicoff.bmp">
+      <Filter>Resources</Filter>
+    </Image>
+    <Image Include="resources\musicon.bmp">
+      <Filter>Resources</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="resources\icon.ico" />
-    <Image Include="resources\ender.bmp" />
-    <Image Include="resources\logo.bmp" />
-    <Image Include="resources\musicon.bmp" />
-    <Image Include="resources\musicoff.bmp" />
+    <ResourceCompile Include="resource.rc">
+      <Filter>Resources</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>

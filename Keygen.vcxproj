@@ -272,6 +272,7 @@
     </ProjectReference>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="bink.cpp" />
     <ClCompile Include="D:\Software\Development\XPKeygen\main.cpp" />
     <ClCompile Include="D:\Software\Development\XPKeygen\xp.cpp" />
     <ClCompile Include="D:\Software\Development\XPKeygen\server.cpp" />

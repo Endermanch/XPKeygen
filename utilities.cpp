@@ -5,7 +5,7 @@
 #include "header.h"
 
 /* Convert data between endianness types. */
-void endiannessConvert(byte *data, int length) {
+void endian(byte *data, int length) {
     for (int i = 0; i < length / 2; i++) {
         byte temp = data[i];
         data[i] = data[length - i - 1];
@@ -14,7 +14,7 @@ void endiannessConvert(byte *data, int length) {
 }
 
 /* Generates a random 32-bit integer in range. */
-ul32 randomRange(ul32 dwLow, ul32 dwHigh) {
+DWORD randomRange(DWORD dwLow, DWORD dwHigh) {
     return rand() % (dwHigh - dwLow) + dwLow;
 }
 
@@ -112,4 +112,19 @@ EC_GROUP *initializeEllipticCurve(
     BN_CTX_free(context);
 
     return eCurve;
+}
+
+int BN_bn2lebin(const BIGNUM *a, unsigned char *to, int tolen) {
+    if (a == nullptr || to == nullptr)
+        return 0;
+
+    int len = BN_bn2bin(a, to);
+
+    if (len > tolen)
+        return -1;
+
+    // Choke point inside BN_bn2lebinpad: OpenSSL uses len instead of tolen.
+    endian(to, tolen);
+
+    return len;
 }
