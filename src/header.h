@@ -16,6 +16,8 @@
 #include <openssl/sha.h>
 #include <openssl/rand.h>
 
+#pragma warning(disable: 6387)
+
 #define PK_LENGTH                       25
 #define NULL_TERMINATOR                 1
 

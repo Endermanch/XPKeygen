@@ -44,7 +44,7 @@ LRESULT HexEditProc(HWND hWindow, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_
     }
 
     case WM_CHAR: {
-        WCHAR isXPresent[2 + 1]; // 0x and the NULL terminator.
+        WCHAR isXPresent[2 + 1]{}; // 0x and the NULL terminator.
 
         WCHAR hexNumber = toupper(wParam);
         ULONG hexLength = SendMessageW(hWindow, WM_GETTEXTLENGTH, 0, 0);
@@ -198,7 +198,7 @@ LRESULT CALLBACK ComboProc(HWND hWindow, UINT uMsg, WPARAM wParam, LPARAM lParam
 
             RECT        rClient;
             PAINTSTRUCT paintStruct;
-            BITMAP      pBitmap;
+            BITMAP      pBitmap{};
 
             HDC         hClientDC = BeginPaint(hWindow, &paintStruct),
                         hCompatDC = CreateCompatibleDC(hClientDC);
@@ -722,7 +722,7 @@ LRESULT CALLBACK WNDProc(HWND hWindow, UINT uMessage, WPARAM wParam, LPARAM lPar
 
 /* Initialize system fonts. */
 void InitializeFonts(HFONT *hLabelFont, HFONT *hSmolFont, HFONT *hBoldFont, HFONT *hCaptionFont) {
-    NONCLIENTMETRICSW nonClientMetrics;
+    NONCLIENTMETRICSW nonClientMetrics{};
 
     // Get information about the default system font.
     nonClientMetrics.cbSize = sizeof(NONCLIENTMETRICSW);
