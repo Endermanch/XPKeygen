@@ -106,7 +106,7 @@
       <UseFullPaths>true</UseFullPaths>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ObjectFileName>$(IntDir)</ObjectFileName>
-      <AdditionalIncludeDirectories>C:\Program Files (x86)\OpenSSL\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Program Files\OpenSSL\include</AdditionalIncludeDirectories>
       <SDLCheck>false</SDLCheck>
       <ConformanceMode>false</ConformanceMode>
       <CallingConvention>StdCall</CallingConvention>
@@ -202,7 +202,7 @@
       <ObjectFileName>$(IntDir)</ObjectFileName>
       <DebugInformationFormat>
       </DebugInformationFormat>
-      <AdditionalIncludeDirectories>C:\Program Files (x86)\OpenSSL\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Program Files\OpenSSL\include</AdditionalIncludeDirectories>
       <CallingConvention>StdCall</CallingConvention>
       <LanguageStandard>Default</LanguageStandard>
     </ClCompile>
