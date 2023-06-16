@@ -48,7 +48,8 @@ const char privateKeyXP[] = "B9E99B9BB9812E"; // "677A485D4BE4A0";*/
 VOID unpackXP(
     QWORD (&pRaw)[2],
      BOOL &pUpgrade,
-    DWORD &pSerial,
+    DWORD &pChannelID,
+    DWORD &pSequence,
     DWORD &pHash,
     QWORD &pSignature
 ) {
@@ -59,7 +60,8 @@ VOID unpackXP(
     pUpgrade = FIRSTNBITS(pRaw[0], 1);
 
     // Serial = Bits [1..30] -> 30 bits
-    pSerial = NEXTSNBITS(pRaw[0], 30, 1);
+    pChannelID = NEXTSNBITS(pRaw[0], 30, 1) / 1'000'000;
+    pSequence = NEXTSNBITS(pRaw[0], 30, 1) % 1'000'000;
 
     // Hash = Bits [31..58] -> 28 bits
     pHash = NEXTSNBITS(pRaw[0], 28, 31);
@@ -72,7 +74,8 @@ VOID unpackXP(
 VOID packXP(
     QWORD (&pRaw)[2],
      BOOL pUpgrade,
-    DWORD pSerial,
+    DWORD pChannelID,
+    DWORD pSequence,
     DWORD pHash,
     QWORD pSignature
 ) {
@@ -81,7 +84,7 @@ VOID packXP(
     // 64 * 2 = 128
 
     // Signature [114..59] <- Hash [58..31] <- Serial [30..1] <- Upgrade [0]
-    pRaw[0] = FIRSTNBITS(pSignature, 5) << 59 | FIRSTNBITS(pHash, 28) << 31 | (QWORD)pSerial << 1 | pUpgrade;
+    pRaw[0] = FIRSTNBITS(pSignature, 5) << 59 | FIRSTNBITS(pHash, 28) << 31 | (QWORD)(pChannelID * 1'000'000 + pSequence) << 1 | pUpgrade;
     pRaw[1] = NEXTSNBITS(pSignature, 51, 5);
 }
 
@@ -98,7 +101,8 @@ BOOL verifyXPKey(
           pSignature;
 
     DWORD pData,
-          pSerial,
+          pChannelID,
+          pSequence,
           pHash;
 
     BOOL  pUpgrade;
@@ -107,9 +111,9 @@ BOOL verifyXPKey(
     unbase24((BYTE *)pRaw, pKey);
 
     // Extract RPK, hash and signature from bytecode.
-    unpackXP(pRaw, pUpgrade, pSerial, pHash, pSignature);
+    unpackXP(pRaw, pUpgrade, pChannelID, pSequence, pHash, pSignature);
 
-    pData = pSerial << 1 | pUpgrade;
+    pData = (pChannelID * 1'000'000 + pSequence) << 1 | pUpgrade;
 
     /*
      *
@@ -203,7 +207,7 @@ VOID generateXPKey(
     QWORD pRaw[2]{},
           pSignature = 0;
 
-    // Data segment of the RPK.
+    // Data segment of the RPK (first 31 bits).
     DWORD pData = (pChannelID * 1'000'000 + pSequence) << 1 | pUpgrade;
 
     do {
@@ -271,7 +275,7 @@ VOID generateXPKey(
         BN_bn2lebinpad(s, (BYTE *)&pSignature, BN_num_bytes(s));
 
         // Pack product key.
-        packXP(pRaw, pUpgrade, pChannelID * 1'000'000 + pSequence, pHash, pSignature);
+        packXP(pRaw, pUpgrade, pChannelID, pSequence, pHash, pSignature);
 
         EC_POINT_free(r);
     } while (pSignature > BITMASK(55));

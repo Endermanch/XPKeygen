@@ -15,12 +15,64 @@ HWND hMainWindow;
 
 const WCHAR *pAboutLink = L"https://github.com/Endermanch/XPKeygen",
             *pWebsite = L"https://malwarewatch.org",
-            *pVersion = L"2.3",
+            *pVersion = L"2.5",
             *pTitle = L"Windows XP Pro SP3 // Server 2003 SP0 x86 VLK - Enderman[ch]",
-            *pGroupTitle = L"Windows XP Pro SP3 // Server 2003 SP0 x86 VLK";
+            *pGroupTitle = L"Windows XP Pro SP3 // Server 2003 SP0 x86 VLK",
+            *pRBText = L"z22 / MSKey / Endermanch ◄ 14/06/2023";
 
 bool bServer = false,
+     bUpgrade = false,
      bMusic = true;
+
+const int w = 615,
+          h = 545,
+          x = (GetSystemMetrics(SM_CXSCREEN) - w) / 2,
+          y = (GetSystemMetrics(SM_CYSCREEN) - h) / 2;
+
+/* Hexadecimal edit processor. */
+LRESULT HexEditProc(HWND hWindow, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData) {
+    static EDITBALLOONTIP balloonTip;
+
+    switch (uMsg) {
+    case WM_APP + IDC_EDIT1: {
+        balloonTip.cbStruct = sizeof(EDITBALLOONTIP);
+        balloonTip.pszTitle = L"Unacceptable Character";
+        balloonTip.pszText = L"You can only type decimal/hexadecimal numbers here.";
+        balloonTip.ttiIcon = TTI_ERROR;
+
+        break;
+    }
+
+    case WM_CHAR: {
+        WCHAR isXPresent[2 + 1]; // 0x and the NULL terminator.
+
+        WCHAR hexNumber = toupper(wParam);
+        ULONG hexLength = SendMessageW(hWindow, WM_GETTEXTLENGTH, 0, 0);
+
+        SendMessageW(hWindow, WM_GETTEXT, 3, (LPARAM)isXPresent);
+
+        if (hexNumber >= L'A' && hexNumber <= L'F' && toupper(isXPresent[1]) == 'X' ||
+            hexNumber >= L'0' && hexNumber <= L'9' ||
+            hexNumber == L'X' && hexLength == 0x01 ||
+            hexNumber  < L' ' || hexLength == 0x0C) goto forward;
+
+        SendMessageW(hWindow, EM_SHOWBALLOONTIP, 0, (LPARAM)&balloonTip);
+
+        break;
+    }
+
+    case WM_NCDESTROY: {
+        RemoveWindowSubclass(hWindow, HexEditProc, 1);
+
+        break;
+    }
+
+    forward:
+    default: return DefSubclassProc(hWindow, uMsg, wParam, lParam);
+    }
+
+    return 0;
+}
 
 /* Bitmap link processor. */
 LRESULT BitmapLinkProc(HWND hWindow, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData) {
@@ -136,6 +188,98 @@ LRESULT StaticLinkProc(HWND hWindow, UINT uMsg, WPARAM wParam, LPARAM lParam, UI
     return 0;
 }
 
+/* Combo box processor. */
+LRESULT CALLBACK ComboProc(HWND hWindow, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData) {
+    switch (uMsg) {
+        case WM_PAINT: {
+            // If the combobox isn't dropdown-only, there's no support for it.
+            if ((GetWindowLongPtrW(hWindow, GWL_STYLE) & CBS_DROPDOWNLIST) == 0)
+                break;
+
+            RECT        rClient;
+            PAINTSTRUCT paintStruct;
+            BITMAP      pBitmap;
+
+            HDC         hClientDC = BeginPaint(hWindow, &paintStruct),
+                        hCompatDC = CreateCompatibleDC(hClientDC);
+
+            HBITMAP     hDropDownBitmap = LoadBitmapW((HINSTANCE)GetWindowLongPtrW(hWindow, GWLP_HINSTANCE), MAKEINTRESOURCEW(IDB_BITMAP5));
+            HBRUSH      hBlackBrush = CreateSolidBrush(RGB(0, 0, 0));
+            HPEN        hPen = CreatePen(PS_SOLID, 1, RGB(128, 128, 128));
+            HGDIOBJ     hOldBrush = SelectObject(hClientDC, hBlackBrush),
+                        hOldPen = SelectObject(hClientDC, hPen),
+                        hOldBitmap = SelectObject(hCompatDC, hDropDownBitmap);
+        
+            // Acquire client coordinates, select current font of the window.
+            GetClientRect(hWindow, &rClient);
+            SelectObject(hClientDC, (HFONT)SendMessage(hWindow, WM_GETFONT, 0, 0));
+
+            // Draw border.
+            Rectangle(hClientDC, 0, 0, rClient.right, rClient.bottom);
+
+            // Set background and foreground text colors.
+            SetBkColor(hClientDC, RGB(0, 0, 0));
+            SetTextColor(hClientDC, RGB(255, 255, 255));
+
+            // Select bitmap object and copy bits.
+            GetObjectW(hDropDownBitmap, sizeof(pBitmap), &pBitmap);
+            BitBlt(
+                hClientDC,
+                rClient.right - (pBitmap.bmWidth + 3),
+                rClient.bottom - (rClient.bottom - rClient.top + pBitmap.bmHeight) / 2,
+                pBitmap.bmWidth, pBitmap.bmHeight,
+                hCompatDC,
+                0, 0,
+                SRCCOPY
+            );
+
+            // Re-select old bitmap.
+            SelectObject(hCompatDC, hOldBitmap);
+
+            INT nSelect = SendMessageW(hWindow, CB_GETCURSEL, 0, 0);
+
+            // If an item is selected, we need to draw it as well.
+            if (nSelect >= 0) {
+                INT    nLength = SendMessageW(hWindow, CB_GETLBTEXTLEN, nSelect, 0);
+                WCHAR *pBuffer = (WCHAR *)calloc(nLength + NULL_TERMINATOR, sizeof(WCHAR));
+
+                // Acquire item text.
+                SendMessageW(hWindow, CB_GETLBTEXT, nSelect, (LPARAM)pBuffer);
+
+                // Add left margin and draw text.
+                rClient.left += 5;
+                DrawTextW(
+                    hClientDC,
+                    pBuffer,
+                    -1,
+                    &rClient,
+                    DT_EDITCONTROL | DT_LEFT | DT_VCENTER | DT_SINGLELINE
+                );
+
+                free(pBuffer);
+            }
+
+            // Re-select previous objects.
+            SelectObject(hClientDC, hOldPen);
+            SelectObject(hClientDC, hOldBrush);
+
+            // Free memory.
+            DeleteObject(hBlackBrush);
+            DeleteObject(hPen);
+
+            EndPaint(hWindow, &paintStruct);
+            return 0;
+        }
+
+        case WM_NCDESTROY: {
+            RemoveWindowSubclass(hWindow, ComboProc, uIdSubclass);
+            break;
+        }
+    }
+
+    return DefSubclassProc(hWindow, uMsg, wParam, lParam);
+}
+
 /* Main window processor. */
 LRESULT CALLBACK WNDProc(HWND hWindow, UINT uMessage, WPARAM wParam, LPARAM lParam) {
     static HINSTANCE hInstance;
@@ -208,8 +352,8 @@ LRESULT CALLBACK WNDProc(HWND hWindow, UINT uMessage, WPARAM wParam, LPARAM lPar
     case WM_PAINT: {
         SelectObject(hMainDC, hFrameColor);
         SelectObject(hMainDC, GetStockObject(HOLLOW_BRUSH));
-
-        RoundRect(hMainDC, 10, 165, 589, 430, 12, 12);
+        
+        RoundRect(hMainDC, 10, 165, w - 26, h - 65, 12, 12);
         InvalidateRect(GetDlgItem(hWindow, IDC_LABEL1), nullptr, true);
 
         goto execute;
@@ -228,10 +372,12 @@ LRESULT CALLBACK WNDProc(HWND hWindow, UINT uMessage, WPARAM wParam, LPARAM lPar
         }
         else if ((HWND)lParam == GetDlgItem(hWindow, IDC_LABEL4)) {
             SetTextColor((HDC)wParam, RGB(140, 140, 255));
+
             return (LRESULT)(hBGColorPrim);
         }
         else if ((HWND)lParam == GetDlgItem(hWindow, IDC_LABEL5)) {
             SetTextColor((HDC)wParam, RGB(255, 140, 140));
+
             return (LRESULT)(hBGColorPrim);
         }
         else {
@@ -250,9 +396,30 @@ LRESULT CALLBACK WNDProc(HWND hWindow, UINT uMessage, WPARAM wParam, LPARAM lPar
         else if ((HWND)lParam == GetDlgItem(hWindow, IDC_INPUT2)) {
             SetTextColor((HDC)wParam, RGB(140, 140, 255));
         }
+        else if ((HWND)lParam == GetDlgItem(hWindow, IDC_INPUT3)) {
+            SetTextColor((HDC)wParam, RGB(255, 255, 140));
+        }
+        else if ((HWND)lParam == GetDlgItem(hWindow, IDC_COMBO1)) {
+            SetTextColor((HDC)wParam, RGB(255, 255, 255));
+        }
         else goto execute;
 
         return (LRESULT)(hBGColorSec);
+
+    case WM_CTLCOLORLISTBOX: {
+        COMBOBOXINFO hComboBoxInfo{};
+
+        hComboBoxInfo.cbSize = sizeof(hComboBoxInfo);
+        SendDlgItemMessageW(hWindow, IDC_COMBO1, CB_GETCOMBOBOXINFO, 0, (LPARAM)&hComboBoxInfo);
+
+        SetBkMode((HDC)wParam, TRANSPARENT);
+
+        if ((HWND)lParam == hComboBoxInfo.hwndList) {
+            SetTextColor((HDC)wParam, RGB(255, 255, 255));
+        }
+
+        return (LRESULT)(hBGColorSec);
+    }
 
     case WM_NOTIFY: {
         LPNMHDR nmHeader = (LPNMHDR)lParam;
@@ -374,10 +541,36 @@ LRESULT CALLBACK WNDProc(HWND hWindow, UINT uMessage, WPARAM wParam, LPARAM lPar
                 break;
             }
 
+            case IDC_COMBO1:
+                switch (HIWORD(wParam)) {
+                case CBN_SELCHANGE:
+                    int nSelect = SendMessageW((HWND)lParam, CB_GETCURSEL, 0, 0);
+
+                    switch (nSelect) {
+                        case 0:
+                            EnableWindow(GetDlgItem(hMainWindow, IDC_INPUT2), true);
+                            EnableWindow(GetDlgItem(hMainWindow, IDC_INPUT3), false);
+
+                            bServer = false;
+                            break;
+
+                        case 1:
+                            EnableWindow(GetDlgItem(hMainWindow, IDC_INPUT2), false);
+                            EnableWindow(GetDlgItem(hMainWindow, IDC_INPUT3), true);
+
+                            bServer = true;
+                            break;
+                    }
+
+                    break;
+                }
+
+                break;
+
             case IDC_LABEL2: {
                 switch (HIWORD(wParam)) {
                     case STN_CLICKED:
-                        CheckRadioButton(hWindow, IDC_RADIO1, IDC_RADIO2, IDC_RADIO1);
+                        SendDlgItemMessageW(hWindow, IDC_CHECK1, BM_SETCHECK, !SendDlgItemMessageW(hWindow, IDC_CHECK1, BM_GETCHECK, 0, 0), 0);
 
                         break;
                 }
@@ -385,21 +578,17 @@ LRESULT CALLBACK WNDProc(HWND hWindow, UINT uMessage, WPARAM wParam, LPARAM lPar
                 __fallthrough;
             }
 
-            case IDC_RADIO1: 
+            case IDC_CHECK1: 
                 switch (HIWORD(wParam)) {
                     case BN_CLICKED:
-                        EnableWindow(GetDlgItem(hMainWindow, IDC_BUTTON4), true);
-
-                        EnableWindow(GetDlgItem(hMainWindow, IDC_INPUT1), true);
-                        EnableWindow(GetDlgItem(hMainWindow, IDC_INPUT2), true);
-
-                        bServer = false;
+                        bUpgrade = IsDlgButtonChecked(hWindow, IDC_CHECK1);
 
                         break;
                 }
 
                 break;
-
+            
+            /*
             case IDC_LABEL3: {
                 switch (HIWORD(wParam)) {
                     case STN_CLICKED:
@@ -425,6 +614,7 @@ LRESULT CALLBACK WNDProc(HWND hWindow, UINT uMessage, WPARAM wParam, LPARAM lPar
                 }
 
                 break;
+            */
 
             case IDC_BUTTON1: {
                 ShellExecuteW(hWindow, L"open", pAboutLink, nullptr, nullptr, SW_SHOWNORMAL); 
@@ -433,21 +623,24 @@ LRESULT CALLBACK WNDProc(HWND hWindow, UINT uMessage, WPARAM wParam, LPARAM lPar
             }
 
             case IDC_BUTTON2: {
-                WCHAR   *pText = (WCHAR *)calloc(512, sizeof(WCHAR));
-                HWND    hEdit = GetDlgItem(hMainWindow, IDC_EDIT1);
+                WCHAR *pText = (WCHAR *)calloc(512, sizeof(WCHAR)),
+                       pBSection[4]{}, pCSection[8]{}, pAuthSection[8]{};
+
+                HWND   hInput1 = GetDlgItem(hMainWindow, IDC_INPUT1),
+                       hInput2 = GetDlgItem(hMainWindow, IDC_INPUT2),
+                       hEdit = GetDlgItem(hMainWindow, IDC_EDIT1);
+
+                SendMessageW(hInput1, WM_GETTEXT, 3 + NULL_TERMINATOR, (LPARAM)pBSection);
+                SendMessageW(hInput2, WM_GETTEXT, 6 + NULL_TERMINATOR, (LPARAM)pCSection);
 
                 if (bServer) {
-                    formatServer(pText);
+                    HWND hInput3 = GetDlgItem(hMainWindow, IDC_INPUT3);
+
+                    SendMessageW(hInput3, WM_GETTEXT, 5 + NULL_TERMINATOR, (LPARAM)pAuthSection);
+                    formatServer(bUpgrade, pBSection, pAuthSection, pText);
                 }
                 else {
-                    WCHAR   pBSection[4]{}, pCSection[8]{};
-                    HWND    hInput1 = GetDlgItem(hMainWindow, IDC_INPUT1),
-                            hInput2 = GetDlgItem(hMainWindow, IDC_INPUT2);
-
-                    SendMessageW(hInput1, WM_GETTEXT, 3 + NULL_TERMINATOR, (LPARAM)pBSection);
-                    SendMessageW(hInput2, WM_GETTEXT, 6 + NULL_TERMINATOR, (LPARAM)pCSection);
-
-                    formatXP(pBSection, pCSection, pText);
+                    formatXP(bUpgrade, pBSection, pCSection, pText);
                 }
 
                 SendMessageW(hEdit, WM_SETTEXT, 0, (LPARAM)pText);
@@ -463,16 +656,16 @@ LRESULT CALLBACK WNDProc(HWND hWindow, UINT uMessage, WPARAM wParam, LPARAM lPar
             }
 
             case IDC_BUTTON4: {
-                DWORD msDigits = randomRange(0, 999),
-                     lsDigits = randomRange(0, 999'999);
+                DWORD nChannelID = randomRange(1, 999),
+                      nSequence = randomRange(0, 999'999);
 
                 WCHAR pBSection[4]{}, pCSection[8]{};
 
-                wsprintfW(pBSection, L"%03d", msDigits);
-                wsprintfW(pCSection, L"%06d", lsDigits);
+                wsprintfW(pBSection, L"%03d", nChannelID);
+                wsprintfW(pCSection, L"%06d", nSequence);
 
                 SendMessageW(GetDlgItem(hMainWindow, IDC_INPUT1), WM_SETTEXT, 0, (LPARAM)pBSection);
-                SendMessageW(GetDlgItem(hMainWindow, IDC_INPUT2), WM_SETTEXT, 0, (LPARAM)pCSection);
+                if (!bServer) SendMessageW(GetDlgItem(hMainWindow, IDC_INPUT2), WM_SETTEXT, 0, (LPARAM)pCSection);
 
                 break;
             }
@@ -579,11 +772,6 @@ bool InitializeWindow(HINSTANCE hInstance) {
 
     InitializeFonts(&hLabelFont, &hSmolFont, &hBoldFont, &hCaptionFont);
 
-    const int   w = 615,
-                h = 495,
-                x = (GetSystemMetrics(SM_CXSCREEN) - w) / 2,
-                y = (GetSystemMetrics(SM_CYSCREEN) - h) / 2;
-
     hMainWindow = CreateWindowExW(
             0,
             L"XPKeygen",
@@ -650,104 +838,76 @@ bool InitializeWindow(HINSTANCE hInstance) {
 
     SendMessageW(hGroupBox, WM_SETFONT, (WPARAM)hCaptionFont, 0);
 
-    HWND hRPKLabel = CreateWindowExW(
-        0,
-        L"Static", L"Raw Product Key:",
-        WS_CHILD | WS_VISIBLE,
-        20, 190,
-        100, 16,
-        hMainWindow, nullptr,
-        hInstance, nullptr
-    );
-
-    SendMessageW(hRPKLabel, WM_SETFONT, (WPARAM)hBoldFont, 0);
-
-    HWND hInput1 = CreateWindowExW(
-        0,
-        L"Edit",
-        L"",
-        WS_CHILD | WS_VISIBLE | WS_BORDER | WS_TABSTOP |
-        ES_LEFT | ES_NUMBER,
-        130, 189,
-        40, 20,
-        hMainWindow,
-        (HMENU)IDC_INPUT1,
-        hInstance,
-        nullptr
-    );
-
-    SendMessageW(hInput1, EM_SETCUEBANNER, 0, (LPARAM)L"BBB");
-    SendMessageW(hInput1, WM_SETTEXT, 0, (LPARAM)L"640");
-    SendMessageW(hInput1, WM_SETFONT, (WPARAM)hLabelFont, 0);
-
-    SendMessageW(hInput1, EM_SETLIMITTEXT, (WPARAM)3, 0);
-
-    HWND hRPKDash = CreateWindowExW(
-        0,
-        L"Static", L"-",
-        WS_CHILD | WS_VISIBLE,
-        173, 190,
-        10, 16,
-        hMainWindow, nullptr,
-        hInstance, nullptr
-    );
-
-    SendMessageW(hRPKDash, WM_SETFONT, (WPARAM)hBoldFont, 0);
-
-    HWND hInput2 = CreateWindowExW(
-        0,
-        L"Edit",
-        L"",
-        WS_CHILD | WS_VISIBLE | WS_BORDER | WS_TABSTOP |
-        ES_LEFT | ES_NUMBER,
-        181, 189,
-        70, 20,
-        hMainWindow,
-        (HMENU)IDC_INPUT2,
-        hInstance,
-        nullptr
-    );
-
-    SendMessageW(hInput2, EM_SETCUEBANNER, 0, (LPARAM)L"CCCCCC");
-    SendMessageW(hInput2, WM_SETTEXT, 0, (LPARAM)L"883400");
-    SendMessageW(hInput2, WM_SETFONT, (WPARAM)hLabelFont, 0);
-
-    SendMessageW(hInput2, EM_SETLIMITTEXT, (WPARAM)6, 0);
-
-    HWND hRandomize = CreateWindowExW(
-        0,
-        L"Button",
-        L"Randomize",
-        WS_CHILD | WS_VISIBLE | WS_TABSTOP,
-        260, 188,
-        75, 22,
-        hMainWindow,
-        (HMENU)IDC_BUTTON4,
-        hInstance,
-        nullptr
-    );
-
-    SendMessageW(hRandomize, WM_SETFONT, (WPARAM)hLabelFont, 0);
-
     HWND hVersionLabel = CreateWindowExW(
         0,
         L"Static", L"Version:",
         WS_CHILD | WS_VISIBLE,
-        20, 220,
-        100, 16,
+        20, 190,
+        50, 16,
         hMainWindow, nullptr,
         hInstance, nullptr
     );
 
     SendMessageW(hVersionLabel, WM_SETFONT, (WPARAM)hBoldFont, 0);
 
-    HWND hRadio1 = CreateWindowExW(
+    HWND hComboBox = CreateWindowExW(
+        0,
+        WC_COMBOBOX,
+        L"",
+        WS_CHILD | WS_VISIBLE | WS_OVERLAPPED | WS_BORDER | WS_TABSTOP |
+        CBS_DROPDOWNLIST | CBS_HASSTRINGS,
+        70, 190 - 2,
+        400, 20,
+        hMainWindow,
+        (HMENU)IDC_COMBO1,
+        hInstance, nullptr
+    );
+
+    SetWindowSubclass(hComboBox, (SUBCLASSPROC)ComboProc, IDC_COMBO1, 0);
+
+    SendMessageW(hComboBox, WM_SETFONT, (WPARAM)hLabelFont, 0);
+
+    SendMessageW(hComboBox, CB_ADDSTRING, 0, (LPARAM)L"Windows XP (SP0 - SP3)");
+    SendMessageW(hComboBox, CB_ADDSTRING, 0, (LPARAM)L"Windows Server 2003 (SP0)");
+
+    SendMessageW(hComboBox, CB_SETCURSEL, 0, 0);
+
+    HWND hUpgrade = CreateWindowExW(
+        WS_EX_WINDOWEDGE,
+        L"Button",
+        L"",
+        WS_VISIBLE | WS_CHILD | WS_TABSTOP |
+        BS_AUTOCHECKBOX,
+        480, 190 - 1,
+        17, 20,
+        hMainWindow,
+        (HMENU)IDC_CHECK1,
+        hInstance, nullptr
+    );
+
+    SendMessageW(hUpgrade, WM_SETFONT, (WPARAM)hLabelFont, 0);
+
+    HWND hUpgradeLabel = CreateWindowExW(
+        0,
+        L"Static",
+        L"Upgrade",
+        WS_CHILD | WS_VISIBLE |
+        SS_NOTIFY,
+        497, 190 + 1,
+        50, 16,
+        hMainWindow, (HMENU)IDC_LABEL2,
+        hInstance, nullptr
+    );
+
+    SendMessageW(hUpgradeLabel, WM_SETFONT, (WPARAM)hLabelFont, 0);
+
+    /*HWND hRadio1 = CreateWindowExW(
         WS_EX_WINDOWEDGE,
         L"Button",
         L"",
         WS_VISIBLE | WS_CHILD | WS_GROUP | WS_TABSTOP |
         BS_AUTORADIOBUTTON,
-        70, 219,
+        70, 190 - 1,
         17, 20,
         hMainWindow,
         (HMENU)IDC_RADIO1,
@@ -763,7 +923,7 @@ bool InitializeWindow(HINSTANCE hInstance) {
         L"Windows XP VLK",
         WS_CHILD | WS_VISIBLE |
         SS_NOTIFY,
-        89, 221,
+        89, 190 + 1,
         90, 16,
         hMainWindow, (HMENU)IDC_LABEL2,
         hInstance, nullptr
@@ -777,7 +937,7 @@ bool InitializeWindow(HINSTANCE hInstance) {
         L"",
         WS_VISIBLE | WS_CHILD | WS_TABSTOP |
         BS_AUTORADIOBUTTON,
-        200, 219,
+        200, 190 - 1,
         17, 20,
         hMainWindow,
         (HMENU)IDC_RADIO2,
@@ -791,13 +951,128 @@ bool InitializeWindow(HINSTANCE hInstance) {
         L"Windows Server 2003 VLK",
         WS_CHILD | WS_VISIBLE |
         SS_NOTIFY,
-        218, 221,
+        218, 190 + 1,
         142, 16,
         hMainWindow, (HMENU)IDC_LABEL3,
         hInstance, nullptr
     );
 
-    SendMessageW(hRadioLabel2, WM_SETFONT, (WPARAM)hLabelFont, 0);
+    SendMessageW(hRadioLabel2, WM_SETFONT, (WPARAM)hLabelFont, 0);*/
+
+    HWND hSerialLabel = CreateWindowExW(
+        0,
+        L"Static", L"Serial:",
+        WS_CHILD | WS_VISIBLE,
+        20, 220 + 1,
+        50, 16,
+        hMainWindow, nullptr,
+        hInstance, nullptr
+    );
+
+    SendMessageW(hSerialLabel, WM_SETFONT, (WPARAM)hBoldFont, 0);
+
+    HWND hChannelID = CreateWindowExW(
+        0,
+        L"Edit",
+        L"",
+        WS_CHILD | WS_VISIBLE | WS_BORDER | WS_TABSTOP |
+        ES_LEFT | ES_NUMBER,
+        70, 220 - 1,
+        40, 20,
+        hMainWindow,
+        (HMENU)IDC_INPUT1,
+        hInstance,
+        nullptr
+    );
+
+    SendMessageW(hChannelID, EM_SETCUEBANNER, 0, (LPARAM)L"BBB");
+    SendMessageW(hChannelID, WM_SETTEXT, 0, (LPARAM)L"640");
+    SendMessageW(hChannelID, WM_SETFONT, (WPARAM)hLabelFont, 0);
+
+    SendMessageW(hChannelID, EM_SETLIMITTEXT, (WPARAM)3, 0);
+
+    HWND hSerialDash = CreateWindowExW(
+        0,
+        L"Static", L"-",
+        WS_CHILD | WS_VISIBLE,
+        113, 220,
+        10, 16,
+        hMainWindow, nullptr,
+        hInstance, nullptr
+    );
+
+    SendMessageW(hSerialDash, WM_SETFONT, (WPARAM)hBoldFont, 0);
+
+    HWND hSequence = CreateWindowExW(
+        0,
+        L"Edit",
+        L"",
+        WS_CHILD | WS_VISIBLE | WS_BORDER | WS_TABSTOP |
+        ES_LEFT | ES_NUMBER,
+        121, 220 - 1,
+        70, 20,
+        hMainWindow,
+        (HMENU)IDC_INPUT2,
+        hInstance,
+        nullptr
+    );
+
+    SendMessageW(hSequence, EM_SETCUEBANNER, 0, (LPARAM)L"CCCCCC");
+    SendMessageW(hSequence, WM_SETTEXT, 0, (LPARAM)L"883400");
+    SendMessageW(hSequence, WM_SETFONT, (WPARAM)hLabelFont, 0);
+
+    SendMessageW(hSequence, EM_SETLIMITTEXT, (WPARAM)6, 0);
+
+    HWND hRandomize = CreateWindowExW(
+        0,
+        L"Button",
+        L"Randomize",
+        WS_CHILD | WS_VISIBLE | WS_TABSTOP,
+        200, 220 - 2,
+        75, 22,
+        hMainWindow,
+        (HMENU)IDC_BUTTON4,
+        hInstance,
+        nullptr
+    );
+
+    SendMessageW(hRandomize, WM_SETFONT, (WPARAM)hLabelFont, 0);
+
+    HWND hAuthInfoLabel = CreateWindowExW(
+        0,
+        L"Static", L"AuthInfo:",
+        WS_CHILD | WS_VISIBLE,
+        290, 220 + 1,
+        70, 16,
+        hMainWindow, nullptr,
+        hInstance, nullptr
+    );
+
+    SendMessageW(hAuthInfoLabel, WM_SETFONT, (WPARAM)hBoldFont, 0);
+
+    HWND hAuthInfo = CreateWindowExW(
+        0,
+        L"Edit",
+        L"",
+        WS_CHILD | WS_VISIBLE | WS_BORDER | WS_TABSTOP |
+        WS_DISABLED | ES_LEFT,
+        350, 220 - 1,
+        50, 20,
+        hMainWindow,
+        (HMENU)IDC_INPUT3,
+        hInstance,
+        nullptr
+    );
+
+    SetWindowSubclass(hAuthInfo, HexEditProc, IDC_EDIT1, 0);
+
+    SendMessageW(hAuthInfo, EM_SETCUEBANNER, 0, (LPARAM)L"0 - 1023");
+    SendMessageW(hAuthInfo, EM_SETLIMITTEXT, (WPARAM)5, 0);
+
+    SendMessageW(hAuthInfo, WM_SETTEXT, 0, (LPARAM)L"0x1A4");
+
+    SendMessageW(hAuthInfo, WM_APP + IDC_EDIT1, 0, 0);
+    SendMessageW(hAuthInfo, WM_SETFONT, (WPARAM)hLabelFont, 0);
 
     HWND hEdit = CreateWindowExW(
         0,
@@ -805,7 +1080,7 @@ bool InitializeWindow(HINSTANCE hInstance) {
         L"",
         WS_CHILD | WS_VISIBLE | WS_BORDER | 
         ES_MULTILINE | ES_READONLY |
-        ES_LEFT | ES_UPPERCASE,
+        ES_LEFT,
         20, 250,
         w - 57, h - 360,
         hMainWindow,
@@ -874,7 +1149,7 @@ bool InitializeWindow(HINSTANCE hInstance) {
         pVersionString,
         WS_CHILD | WS_VISIBLE |
         SS_NOTIFY,
-        10, 436,
+        10, h - 58,
         170, 16,
         hMainWindow, (HMENU)IDC_LABEL4,
         hInstance, nullptr
@@ -888,10 +1163,10 @@ bool InitializeWindow(HINSTANCE hInstance) {
     HWND hBRText = CreateWindowExW(
         0,
         L"Static",
-        L"z22 / mskey / Endermanch ◄ 16/04/2023",
+        pRBText,
         WS_CHILD | WS_VISIBLE,
-        w - (170 + 20), 436,
-        170, 16,
+        w - (173 + 20), h - 58,
+        173, 16,
         hMainWindow, (HMENU)IDC_LABEL5,
         hInstance, nullptr
     );

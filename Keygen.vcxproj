@@ -290,6 +290,7 @@
     <Media Include="resources\pxiii.wav" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="resources\dropdown.bmp" />
     <Image Include="resources\ender.bmp" />
     <Image Include="resources\icon.ico" />
     <Image Include="resources\logo.bmp" />

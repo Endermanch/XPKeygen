@@ -73,10 +73,9 @@ void base24(BYTE *byteSeq, CHAR(&pKey)[PK_LENGTH + NULL_TERMINATOR]) {
 }
 
 /* Formats Windows XP key output. */
-void formatXP(WCHAR *pBSection, WCHAR *pCSection, WCHAR *pText) {
+void formatXP(BOOL bUpgrade, WCHAR *pBSection, WCHAR *pCSection, WCHAR *pText) {
     WCHAR pDashedKey[PK_LENGTH + 4 + NULL_TERMINATOR]{};
-
-    int pSSection = 0;
+    INT   pSSection = 0;
 
     for (int i = 0; i < wcslen(pCSection); i++)
         pSSection -= pCSection[i] - '0';
@@ -84,69 +83,82 @@ void formatXP(WCHAR *pBSection, WCHAR *pCSection, WCHAR *pText) {
     while (pSSection < 0)
         pSSection += 7;
 
-    CHAR pKey[PK_LENGTH + NULL_TERMINATOR]{};
-    DWORD pChannelID = _wtoi(pBSection),
-        pSequence = _wtoi(pCSection);
+    CHAR  pKey[PK_LENGTH + NULL_TERMINATOR]{};
+    DWORD nChannelID = wcstoul(pBSection, nullptr, 10),
+          nSequence = wcstoul(pCSection, nullptr, 10);
 
-    DWORD pHash;
+    BOOL  bValid = keyXP(pKey, nChannelID, nSequence, bUpgrade);
+
     QWORD pRaw[2]{},
           pSignature;
 
-    bool bValid = keyXP(pKey, pChannelID, pSequence, false);
+    DWORD pChannelID,
+          pSequence,
+          pSerial,
+          pHash;
 
-    DWORD pSerial;
-    BOOL pUpgrade = false;
+    BOOL  pUpgrade;
 
     unbase24((BYTE *)pRaw, pKey);
-    unpackXP(pRaw, pUpgrade, pSerial, pHash, pSignature);
+    unpackXP(pRaw, pUpgrade, pChannelID, pSequence, pHash, pSignature);
+
+    pSerial = pChannelID * 1'000'000 + pSequence;
 
     for (int i = 0; i < 5; i++)
         wsprintfW(pDashedKey, L"%s%s%.5S", pDashedKey, i != 0 ? L"-" : L"", &pKey[5 * i]);
 
     swprintf(
         pText,
-        L"Product ID:\tPPPPP-%03d-%06d%d-23XXX\r\n\r\nBytecode:\t%016llX %016llX\r\nHash:\t\t%lX\r\nSignature:\t%llX\r\nCurve Point:\t%s\r\n\r\n%s\r\n",
-        pSerial / 1'000'000,
-        pSerial % 1'000'000,
+        L"PRODUCT ID:\tPPPPP-%03d-%06d%d-23XXX\r\n\r\nBYTECODE:\t%016llX %016llX\r\nUPGRADE:\t%s\r\nSERIAL:\t\t0x%lX (%d)\r\nHASH:\t\t0x%lX\r\nSIGNATURE:\t0x%llX\r\nCURVE POINT:\t%s\r\n\r\n\r\n%s\r\n",
+        pChannelID,
+        pSequence,
         pSSection,
         pRaw[1], pRaw[0],
+        pUpgrade ? L"TRUE" : L"FALSE",
+        pSerial, pSerial,
         pHash,
         pSignature,
-        bValid ? L"True" : L"False",
+        bValid ? L"TRUE" : L"FALSE",
         pDashedKey
     );
 }
 
 /* Formats Windows Server 2003 key output. */
-void formatServer(WCHAR *pText) {
+void formatServer(BOOL bUpgrade, WCHAR *pBSection, WCHAR *pAuthSection, WCHAR *pText) {
     WCHAR pDashedKey[32]{};
 
-    char pKey[PK_LENGTH + NULL_TERMINATOR]{};
-    DWORD pHash = 0,
-        pChannelID = 0,
-        pAuthInfo = 0;
+    CHAR  pKey[PK_LENGTH + NULL_TERMINATOR]{};
+    DWORD nChannelID = wcstoul(pBSection, nullptr, 10);
+    DWORD nAuthInfo = wcstoul(pAuthSection, nullptr, 0) % 0x400;
+
+    BOOL  bValid = keyServer(pKey, nChannelID, nAuthInfo, bUpgrade);
 
     QWORD pRaw[2]{},
-        pSignature;
+          pSignature;
 
-    BOOL pUpgrade = false;
-    bool bValid = keyServer(pKey, 640, 0, pUpgrade);
+    DWORD pHash,
+          pChannelID,
+          pAuthInfo;
+
+    BOOL  pUpgrade;
 
     unbase24((BYTE *)pRaw, pKey);
     unpackServer(pRaw, pUpgrade, pChannelID, pHash, pSignature, pAuthInfo);
 
     for (int i = 0; i < 5; i++)
-        wsprintfW(pDashedKey, L"%s%s%.5S", pDashedKey, i != 0 ? L"-" : L"", &pKey[5 * i]);
+        swprintf(pDashedKey, L"%s%s%.5S", pDashedKey, i != 0 ? L"-" : L"", &pKey[5 * i]);
 
     swprintf(
         pText,
-        L"Bytecode:\t%016llX %016llX\r\nChannel ID:\t%d\r\nHash:\t\t%lX\r\nSignature:\t%llX\r\nAuthInfo:\t%d\r\nCurve Point:\t%s\r\n\r\n%s\r\n",
-        pRaw[1], pRaw[0],
+        L"PRODUCT ID:\tPPPPP-%03d-CCCCCCS-45XXX\r\n\r\nBYTECODE:\t%016llX %016llX\r\nUPGRADE:\t%s\r\nCHANNEL ID:\t0x%lX (%d)\r\nHASH:\t\t0x%lX\r\nSIGNATURE:\t0x%llX\r\nAUTHINFO:\t0x%03lX\r\nCURVE POINT:\t%s\r\n\r\n%s\r\n",
         pChannelID,
+        pRaw[1], pRaw[0],
+        pUpgrade ? L"TRUE" : L"FALSE",
+        pChannelID, pChannelID,
         pHash,
         pSignature,
         pAuthInfo,
-        bValid ? L"True" : L"False",
+        bValid ? L"TRUE" : L"FALSE",
         pDashedKey
     );
 }

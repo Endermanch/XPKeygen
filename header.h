@@ -42,22 +42,28 @@
 #define IDC_BUTTON3 1002
 #define IDC_BUTTON4 1003
 
-#define IDC_RADIO1  1005
-#define IDC_RADIO2  1006
+#define IDC_COMBO1  1020
 
-#define IDC_EDIT1   1010
+#define IDC_RADIO1  1030
+#define IDC_RADIO2  1031
 
-#define IDC_INPUT1  1020
-#define IDC_INPUT2  1021
+#define IDC_CHECK1  1036
 
-#define IDC_IMAGE1  1050
-#define IDC_IMAGE2  1051
+#define IDC_EDIT1   1040
 
-#define IDC_LABEL1  1055
-#define IDC_LABEL2  1056
-#define IDC_LABEL3  1057
-#define IDC_LABEL4  1058
-#define IDC_LABEL5  1059
+#define IDC_INPUT1  1060
+#define IDC_INPUT2  1061
+#define IDC_INPUT3  1062
+
+#define IDC_IMAGE1  1080
+#define IDC_IMAGE2  1081
+
+#define IDC_LABEL1  1105
+#define IDC_LABEL2  1106
+#define IDC_LABEL3  1107
+#define IDC_LABEL4  1108
+#define IDC_LABEL5  1109
+#define IDC_LABEL6  1110
 
 typedef uint64_t QWORD;
 
@@ -67,12 +73,12 @@ extern const char pXP[];
 extern const long aXP;
 extern const long bXP;
 
-
 // xp.cpp
 VOID unpackXP(
-    QWORD (&pRaw)[2],
-     BOOL &pUpgrade,
-    DWORD &pSerial,
+    QWORD(&pRaw)[2],
+    BOOL &pUpgrade,
+    DWORD &pChannelID,
+    DWORD &pSequence,
     DWORD &pHash,
     QWORD &pSignature
 );
@@ -80,16 +86,10 @@ VOID unpackXP(
 VOID packXP(
     QWORD (&pRaw)[2],
      BOOL pUpgrade,
-    DWORD pSerial,
+    DWORD pChannelID,
+    DWORD pSequence,
     DWORD pHash,
     QWORD pSignature
-);
-
-BOOL verifyXPKey(
-    EC_GROUP *eCurve,
-    EC_POINT *basePoint,
-    EC_POINT *publicKey,
-        CHAR (&pKey)[PK_LENGTH + NULL_TERMINATOR]
 );
 
 VOID generateXPKey(
@@ -184,8 +184,8 @@ int BN_bn2lebin(const BIGNUM *a, unsigned char *to, int tolen);
 bool unbase24(BYTE *byteSeq, CHAR (&pKey)[PK_LENGTH + NULL_TERMINATOR]);
 void base24(BYTE *byteSeq, CHAR(&pKey)[PK_LENGTH + NULL_TERMINATOR]);
 
-void formatXP(WCHAR *pBSection, WCHAR *pCSection, WCHAR *pText);
-void formatServer(WCHAR *pText);
+VOID formatXP(BOOL bUpgrade, WCHAR *pBSection, WCHAR *pCSection, WCHAR *pText);
+VOID formatServer(BOOL bUpgrade, WCHAR *pBSection, WCHAR *pAuthSection, WCHAR *pText);
 
 
 // windows.cpp

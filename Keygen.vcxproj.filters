@@ -66,6 +66,9 @@
     <Image Include="resources\musicon.bmp">
       <Filter>Resources</Filter>
     </Image>
+    <Image Include="resources\dropdown.bmp">
+      <Filter>Resources</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc">
