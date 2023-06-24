@@ -1188,8 +1188,6 @@ bool InitializeWindow(HINSTANCE hInstance) {
     ShowWindow(hMainWindow, SW_SHOW);
     UpdateWindow(hMainWindow);
 
-    stopAudio();
-
     MSG uMessage;
 
     while(GetMessageW(&uMessage, nullptr, 0, 0)) {
