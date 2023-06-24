@@ -15,10 +15,10 @@ HWND hMainWindow;
 
 CONST WCHAR *pAboutLink = L"https://github.com/Endermanch/XPKeygen",
             *pWebsite = L"https://malwarewatch.org",
-            *pVersion = L"2.5",
+            *pVersion = L"2.7",
             *pTitle = L"Windows 98 - Windows Server 2003 / SP2 x64 VLK - Enderman[ch]",
             *pGroupTitle = L"Windows 98 - Windows Server 2003 / SP2 x64 VLK",
-            *pRBText = L"z22 / MSKey / Endermanch ◄ 14/06/2023",
+            *pRBText = L"z22 / MSKey / Endermanch ◄ 25/06/2023",
             *pPresets[256] = {
                 L"Windows 98",
                 L"Windows 98 (OEM)",
