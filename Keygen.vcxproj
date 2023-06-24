@@ -97,7 +97,7 @@
     <ClCompile>
       <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <ExceptionHandling>Sync</ExceptionHandling>
       <InlineFunctionExpansion>Default</InlineFunctionExpansion>
       <Optimization>Disabled</Optimization>
@@ -184,6 +184,7 @@
       <SubSystem>Console</SubSystem>
       <AdditionalManifestDependencies>"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'"</AdditionalManifestDependencies>
       <EntryPointSymbol>wWinMainCRTStartup</EntryPointSymbol>
+      <RegisterOutput>true</RegisterOutput>
     </Link>
     <ProjectReference>
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
@@ -274,13 +275,13 @@
       <SubSystem>Windows</SubSystem>
       <AdditionalManifestDependencies>"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'"</AdditionalManifestDependencies>
       <EntryPointSymbol>wWinMainCRTStartup</EntryPointSymbol>
+      <RegisterOutput>true</RegisterOutput>
     </Link>
     <ProjectReference>
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <Media Include="resources\neon.wav" />
     <Media Include="resources\pxiii.wav" />
   </ItemGroup>
   <ItemGroup>
@@ -293,12 +294,14 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\header.h" />
+    <ClInclude Include="src\presets.h" />
     <ClInclude Include="src\resource.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\bink.cpp" />
     <ClCompile Include="src\key.cpp" />
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\presets.cpp" />
     <ClCompile Include="src\server.cpp" />
     <ClCompile Include="src\utilities.cpp" />
     <ClCompile Include="src\windows.cpp" />
@@ -306,6 +309,16 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="src\resource.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="resources\bink\BINK2003.bin" />
+    <None Include="resources\bink\BINK2003OEM.bin" />
+    <None Include="resources\bink\BINK98SE.bin" />
+    <None Include="resources\bink\BINK98SEOEM.bin" />
+    <None Include="resources\bink\BINKXP.bin" />
+    <None Include="resources\bink\BINKXP64.bin" />
+    <None Include="resources\bink\BINKXP64OEM.bin" />
+    <None Include="resources\bink\BINKXPOEM.bin" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

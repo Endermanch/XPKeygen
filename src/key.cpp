@@ -87,7 +87,7 @@ void formatXP(BOOL bUpgrade, WCHAR *pBSection, WCHAR *pCSection, WCHAR *pText) {
     DWORD nChannelID = wcstoul(pBSection, nullptr, 10),
           nSequence = wcstoul(pCSection, nullptr, 10);
 
-    BOOL  bValid = keyXP(pKey, nChannelID, nSequence, bUpgrade);
+    BOOL  bValid = keyXP(pKey, pBINKPreset, nChannelID, nSequence, bUpgrade);
 
     QWORD pRaw[2]{},
           pSignature;
@@ -131,7 +131,7 @@ void formatServer(BOOL bUpgrade, WCHAR *pBSection, WCHAR *pAuthSection, WCHAR *p
     DWORD nChannelID = wcstoul(pBSection, nullptr, 10);
     DWORD nAuthInfo = wcstoul(pAuthSection, nullptr, 0) % 0x400;
 
-    BOOL  bValid = keyServer(pKey, nChannelID, nAuthInfo, bUpgrade);
+    BOOL  bValid = keyServer(pKey, pBINKPreset, nChannelID, nAuthInfo, bUpgrade);
 
     QWORD pRaw[2]{},
           pSignature;

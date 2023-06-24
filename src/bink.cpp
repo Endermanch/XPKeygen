@@ -3,63 +3,56 @@
 //
 
 #include "header.h"
-
-#define BINK_RETAIL MAKEINTRESOURCEW(1)
-#define BINK_OEM    MAKEINTRESOURCEW(2)
-
-#define RT_BINK     L"BINK"
+#include "resource.h"
+#include "presets.h"
 
 /*
     Bink resource doesn't exist
     The file you selected isn't a library
     Bink resource is invalid
 */
-typedef struct _EC_BYTE_POINT {
-    CHAR x[256];    // x-coordinate of the point on the elliptic curve.
-    CHAR y[256];    // y-coordinate of the point on the elliptic curve.
-} EC_BYTE_POINT;
 
-typedef struct _BINKHDR {
-    // BINK version - not stored in the resource.
-    ULONG32 dwVersion;
-
-    // Original BINK header.
-    ULONG32 dwID;
-    ULONG32 dwSize;
-    ULONG32 dwHeaderLength;
-    ULONG32 dwChecksum;
-    ULONG32 dwDate;
-    ULONG32 dwKeySizeInDWORDs;
-    ULONG32 dwHashLength;
-    ULONG32 dwSignatureLength;
+/*BOOL SelectPreset(int nIndex) {
+    if (nIndex >= WCOUNT) return false;
     
-    // Extended BINK header. (Windows Server 2003+)
-    ULONG32 dwAuthCodeLength;
-    ULONG32 dwProductIDLength;
-} BINKHDR;
+    strcpy(pBINKPreset.p, p[nIndex]);
+    strcpy(pBINKPreset.a, a);
+    strcpy(pBINKPreset.b, b);
+    strcpy(pBINKPreset.G.x, gx[nIndex]);
+    strcpy(pBINKPreset.G.y, gy[nIndex]);
+    strcpy(pBINKPreset.K.x, kx[nIndex]);
+    strcpy(pBINKPreset.K.y, ky[nIndex]);
 
-typedef struct _BINKDATA {
-    CHAR p[256];        // Finite Field order p.
-    CHAR a[256];        // Elliptic Curve parameter a.
-    CHAR b[256];        // Elliptic Curve parameter b.
+    pBINKPreset.I.x;
+    pBINKPreset.I.y;
+        
+    pBINKPreset.n = n[nIndex];
+    pBINKPreset.k = k[nIndex];
 
-    EC_BYTE_POINT G;    // Base point (Generator) G.
-    EC_BYTE_POINT K;    // Public key K.
-    EC_BYTE_POINT I;    // Inverse of the public key K.
-} BINKDATA;
+    return true;
+}*/
 
-typedef struct _BINKEY {
-    BINKHDR  header;
-    BINKDATA data;
-} BINKEY;
+BOOL CALLBACK EnumResourceProc(HMODULE hModule, CONST WCHAR *lpType, WCHAR *lpName, LONG_PTR lParam) {
+    (*(UINT *)lParam)++;
 
-DWORD extractBINKResource(HMODULE hLibrary, BYTE **pData) {
-    HRSRC hRes = FindResourceW(hLibrary, BINK_OEM, RT_BINK);
+    return TRUE;
+}
+
+UINT countResources(WCHAR *pName) {
+    UINT nResources = 0;
+
+    EnumResourceNamesW(NULL, pName, EnumResourceProc, (LONG_PTR)&nResources);
+
+    return nResources;
+}
+
+DWORD extractBINKResource(HMODULE hModule, UINT nPreset, BYTE **pMemory) {
+    HRSRC hRes = FindResourceW(hModule, MAKEINTRESOURCEW(nPreset), RT_BINK);
     DWORD dwSize = 0;
 
     if (hRes != NULL) {
-        dwSize = SizeofResource(hLibrary, hRes);
-        *pData = (BYTE *)LoadResource(hLibrary, hRes);
+        dwSize = SizeofResource(hModule, hRes);
+        *pMemory = (BYTE *)LoadResource(hModule, hRes);
     }
 
     return dwSize;
@@ -75,64 +68,135 @@ BYTE hexToDecDigit(CHAR nDigit) {
         return nDigit - 'A' + 10;
 }
 
-ULONG32 byteToInteger(BYTE *pByte) {
-    return hexToDecDigit(pByte[0]) << 4 + hexToDecDigit(pByte[1]);
+void reverseBytes(BYTE *pBytes) {
+    UINT nBytes = strlen((CHAR *)pBytes) / 2;
+    CHAR *pBytesCopy = strdup((CHAR *)pBytes);
+
+    for (int i = 0; i < nBytes; i++) {
+        memcpy(&pBytes[(nBytes - (i + 1)) * 2], &pBytesCopy[i * 2], 2 * sizeof(BYTE));
+    }
+
+    free(pBytesCopy);
 }
 
-void reverseBytes(CONST BYTE *pBytes, ULONG32 nBytes, BYTE *pReversed) {
-    for (int i = nBytes - 1; i >= 0; i--) {
-        memcpy((BYTE *)&pBytes[i * 2], (BYTE *)&pReversed[(nBytes - i + 1) * 2], 2 * sizeof(BYTE));
+VOID byteToHex(BYTE *pDestination, BYTE pByte) {
+    BYTE loByte = pByte % 16,
+         hiByte = pByte / 16;
+
+    pDestination[0] = hiByte < 10 ? hiByte + '0' : hiByte + 'A' - 10;
+    pDestination[1] = loByte < 10 ? loByte + '0' : loByte + 'A' - 10;
+}
+
+VOID formatBytes(BYTE *pDestination, BYTE *pSource, UINT nLength) {
+    for (int i = 0; i < nLength; i++) {
+        byteToHex(pDestination + i * 2, pSource[i]);
     }
 }
 
-ULONG32 ulToInteger(BYTE *pUL, BOOL bLittleEndian) {
-    BYTE    pULCopy[8] = { 0 };
-    ULONG32 nUL = 0;
+BOOL decodeBINKResource(BYTE *pData, ULONG32 nLength, BINKEYEX *pBINK) {
+    ULONG32 nStructOffset,
+            nCurveOffset,
+            nCurveField = FIELD_BYTES_2003;
+
+    // If BINK is incomplete or the containers are null pointers, return.
+    if (pData == nullptr || pBINK == nullptr || nLength < 0x170) return false;
+
+    // Reset structure to 0.
+    memset(pBINK, 0, sizeof(BINKEYEX));
+
+    // Read ID and the BINK header.
+    for (nStructOffset = 0; nStructOffset < sizeof(ULONG32) + sizeof(BINKHDR); nStructOffset += sizeof(ULONG32)) {
+        *(ULONG32 *)((BYTE *)pBINK + nStructOffset) = BYDWORD(pData + nStructOffset);
+    }
+
+    // If it's an older BINK, there are only 7 arguments.
+    if (pBINK->binKey.header.dwVersion == 19980206) {
+        pBINK->binKey.header.dwProductIDLength = 0;
+        pBINK->binKey.header.dwAuthCodeLength = 0;
+
+        nCurveField = FIELD_BYTES;
+    }
+
+    for (nCurveOffset = (pBINK->binKey.header.dwHeaderLength + 1) * sizeof(ULONG32); nStructOffset < sizeof(ULONG32) + sizeof(BINKDATA); nStructOffset += FIELD_LENGTH_MAX, nCurveOffset += nCurveField) {
+        BYTE *pCurveParameter = (BYTE *)pBINK + nStructOffset;
+
+        formatBytes(pCurveParameter, pData + nCurveOffset, nCurveField);
+        reverseBytes(pCurveParameter);
+    }
+
+
+
+    // Calculate the inverse of the public key.
+    // The elliptic curve is symmetric about the x axis, so we only need to calculate the y-coordinate.
+    // I.y = p - K.y
+    BIGNUM *fieldOrder = BN_new(),
+           *publicKeyY = BN_new();
+
+    BN_hex2bn(&fieldOrder, pBINK->binKey.data.p);
+    BN_hex2bn(&publicKeyY, pBINK->binKey.data.K.y);
+
+    BN_sub(publicKeyY, fieldOrder, publicKeyY);
+
+    CHAR *pInverse = BN_bn2hex(publicKeyY);
+   
+    strcpy(pBINK->I.x, pBINK->binKey.data.K.x);
+    strcpy(pBINK->I.y, pInverse);
     
-    if (pUL == NULL)
-        return 0;
+    free(pInverse);
 
-    if (bLittleEndian)
-        reverseBytes(pUL, 4, pULCopy);
 
-    for (int i = 0; i < 4; i++) {
-        nUL += byteToInteger(&pULCopy[i * 2]);
-    }
 
-    return nUL;
-}
+    // Additional calculations (not implemented yet)
+    BIGNUM *derivative = BN_new();
+    BIGNUM *generatorx = BN_new();
+    BIGNUM *generatory = BN_new();
+    BN_CTX *ctx = BN_CTX_new();
 
-void decodeBINKResource(BYTE *pData, ULONG32 nLength, BINKEY *pBINK) {
-    ULONG32 nBlockBytes = 4;
+    BN_hex2bn(&generatorx, pBINK->binKey.data.G.x);
+    BN_hex2bn(&generatory, pBINK->binKey.data.G.y);
 
-    // If BINK is incomplete, return.
-    if (nLength < 0x170) return;
+    /*EC_POINT *genPoint, *pubPoint, *genDerivative;
+    EC_GROUP *eCurve = initializeEllipticCurve(
+        pBINK->data.p,
+        pBINK->data.a,
+        pBINK->data.b,
+        pBINK->data.G.x,
+        pBINK->data.G.y,
+        pBINK->data.K.x,
+        pBINK->data.K.y,
+        &genPoint,
+        &pubPoint
+    );
 
-    ulToInteger(pData, TRUE);
+    genDerivative = EC_POINT_new(eCurve);
+    EC_POINT_copy(genDerivative, genPoint);
 
-    /*/ Read BINK header.
-    for (ULONG32 nOffset = 0; nOffset < sizeof(BINKHDR); nOffset += nBlockBytes) {
-        pBINK[nOffset] = 
+    for (ULONG64 iter = 0; iter != 65153636961774397; iter++) {
+        printf("iter: %llu\n", iter);
+        EC_POINT_add(eCurve, genDerivative, genPoint, genDerivative, ctx);
     }*/
 
+    return true;
 }
 
-void base(WCHAR *pPath) {
-    HMODULE pIDgen = LoadLibraryExW(pPath, NULL, LOAD_LIBRARY_AS_DATAFILE);
+VOID InitializePreset(UINT nIndex, BINKEYEX *pBINK) {
+   /* HMODULE pIDgen = LoadLibraryExW(pPath, NULL, LOAD_LIBRARY_AS_DATAFILE);
 
     if (pIDgen == NULL)
-        return;
+        return;*/
 
-    BYTE   *pBuffer = NULL;
-    ULONG32 nLength = extractBINKResource(pIDgen, &pBuffer);
+    BYTE   *pMemory = NULL;
+    ULONG32 nLength = extractBINKResource(NULL, IDR_BINK1 + nIndex, &pMemory);
 
     if (nLength == 0) {
         return;
     }
 
-    BINKEY pBINK = { 0 };
+    decodeBINKResource(pMemory, nLength, pBINK);
 
-    decodeBINKResource(pBuffer, nLength, &pBINK);
+    pBINK->n = generatorOrderArr[nIndex];
+    pBINK->k = privateKeyArr[nIndex];
 
-    FreeLibrary(pIDgen);
-}
+    // FreeLibrary(pIDgen);
+    return;
+} 

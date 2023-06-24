@@ -4,46 +4,6 @@
 
 #include "header.h"
 
-/* Windows XP */
-const char pXP[] = "92ddcf14cb9e71f4489a2e9ba350ae29454d98cb93bdbcc07d62b502ea12238ee904a8b20d017197aae0c103b32713a9";
-const long aXP = 1;
-const long bXP = 0;
-
-// Base point G (Generator)
-const char genXXP[] = "46E3775ECE21B0898D39BEA57050D422A0AF989E497962BAEE2CB17E0A28D5360D5476B8DC966443E37A14F1AEF37742";
-const char genYXP[] = "7C8E741D2C34F4478E325469CD491603D807222C9C4AC09DDB2B31B3CE3F7CC191B3580079932BC6BEF70BE27604F65E";
-
-// The public key
-const char pubXXP[] = "5D8DBE75198015EC41C45AAB6143542EB098F6A5CC9CE4178A1B8A1E7ABBB5BC64DF64FAF6177DC1B0988AB00BA94BF8";
-const char pubYXP[] = "23A2909A0B4803C89F910C7191758B48746CEA4D5FF07667444ACDB9512080DBCA55E6EBF30433672B894F44ACE92BFA";
-
-// The order of G was computed in 18 hours using a Pentium III 450
-const char genOrderXP[] = "DB6B4C58EFBAFD";
-
-// The private key was computed in 10 hours using a Pentium III 450
-const char privateKeyXP[] = "565B0DFF8496C8";
-
-
-/* Windows 98
-const char pXP[] = "ec224ff2613a9fe1411b51e89634643f79a272402ee146b012a3f71098c7e75df4bf8b3713c4f0ce56691ce56b9b5029";
-const long aXP = 1;
-const long bXP = 0;
-
-// Base point G (Generator)
-const char genXXP[] = "b5e1957b19951b5523204a62fd83ab22056f59a13bf8aaaf16ac10b7540f8ea92ba28dbfa68996fa12510c024f912340";
-const char genYXP[] = "a84fbc02f311b1fd4521773e01821bd047f067c496ad54ce1504315cb88667d69130caa25efb2cb1e479ed50efb40d6b";
-
-// The public key
-const char pubXXP[] = "26ea9efe57ab6da485225a13ed66533c143f81b7b9528e38c8568bb726a8f0f5607da0e8d85aebf2e1425758b409e811";
-const char pubYXP[] = "1a7c4cebe5f3919e96876a447a813efcd920979e9610d2b2146a04fab1041b31ae65e24efa3e0b0d61622483655716c2";
-
-// The order of G was computed in 18 hours using a Pentium III 450
-const char genOrderXP[] = "E778E33AEE6B3D";
-
-// The private key was computed in 10 hours using a Pentium III 450
-const char privateKeyXP[] = "B9E99B9BB9812E"; // "677A485D4BE4A0";*/
-
-
 /* Unpacks a Windows XP-like Product Key. */
 VOID unpackXP(
     QWORD (&pRaw)[2],
@@ -172,6 +132,30 @@ BOOL verifyXPKey(
     // Truncate the hash to 28 bits.
     DWORD compHash = BYDWORD(msgDigest) >> 4 & BITMASK(28);
 
+#ifdef _DEBUG
+    printf(
+        "Validating an XP-like key using following values:\n\n         Upgrade: %s\n      Channel ID: %d\n        Sequence: %d\n\n            Hash: 0x%08lX\n   Computed Hash: 0x%08lX\n       Signature: 0x%s\n\n",
+        pUpgrade ? "True" : "False",
+        pChannelID,
+        pSequence,
+        pHash,
+        compHash,
+        BN_bn2hex(s)
+    );
+
+    printf(
+        " K(x; y) = {\n    0x%s,\n    0x%s\n }\n\n",
+        BN_bn2hex(x),
+        BN_bn2hex(y)
+    );
+
+    printf(
+        " compHash %s pHash (%s)\n\n\n",
+        compHash == pHash ? "==" : "!=",
+        compHash == pHash ? "VALID" : "INVALID"
+    );
+#endif
+
     BN_free(e);
     BN_free(s);
     BN_free(x);
@@ -277,6 +261,26 @@ VOID generateXPKey(
         // Pack product key.
         packXP(pRaw, pUpgrade, pChannelID, pSequence, pHash, pSignature);
 
+#ifdef _DEBUG
+        printf(
+            "Generating an XP-like key using following values:\n\n         Upgrade: %s\n      Channel ID: %d\n        Sequence: %d\n\n Generator Order: 0x%s\n     Private Key: 0x%s\n            Seed: 0x%s\n\n",
+            pUpgrade ? "True" : "False",
+            pChannelID,
+            pSequence,
+            BN_bn2hex(genOrder),
+            BN_bn2hex(privateKey),
+            BN_bn2hex(c)
+        );
+
+        printf(
+            " R(x; y) = {\n    0x%s,\n    0x%s\n }\n\nSignature bits: %02d (%s)\n\n\n",
+            BN_bn2hex(x),
+            BN_bn2hex(y),
+            BN_num_bits(s),
+            BN_num_bits(s) <= 55 ? "GOOD" : "BAD"
+        );
+#endif
+
         EC_POINT_free(r);
     } while (pSignature > BITMASK(55));
     // ↑ ↑ ↑
@@ -295,39 +299,59 @@ VOID generateXPKey(
 }
 
 BOOL keyXP(
-     CHAR (&pKey)[PK_LENGTH + NULL_TERMINATOR],
-    DWORD nChannelID,
-    DWORD nSequence,
-     BOOL bUpgrade
+        CHAR (&pKey)[PK_LENGTH + NULL_TERMINATOR],
+    BINKEYEX &pBINK,
+       DWORD nChannelID,
+       DWORD nSequence,
+        BOOL bUpgrade
 ) {
     // If the Channel ID or the random sequence aren't valid, quit.
     if (nChannelID >= 1'000 || nSequence >= 1'000'000)
         return false;
 
+    if (pBINK.n == 0 ||
+        pBINK.k == 0) {
+#ifdef _DEBUG
+        printf("!! NOT IMPLEMENTED !!\n\n");
+#endif
+        return false;
+    }
+
     BIGNUM *privateKey = BN_new();
     BIGNUM *genOrder = BN_new();
 
-    BN_hex2bn(&privateKey, privateKeyXP);
-    BN_hex2bn(&genOrder, genOrderXP);
+    BN_set_word(privateKey, pBINK.k);
+    BN_set_word(genOrder, pBINK.n);
 
     EC_POINT *genPoint, *pubPoint;
     EC_GROUP *eCurve = initializeEllipticCurve(
-        pXP,
-        aXP,
-        bXP,
-        genXXP,
-        genYXP,
-        pubXXP,
-        pubYXP,
-        genOrder,
-        privateKey,
+        pBINK.binKey.data.p,
+        pBINK.binKey.data.a,
+        pBINK.binKey.data.b,
+        pBINK.binKey.data.G.x,
+        pBINK.binKey.data.G.y,
+        pBINK.binKey.data.K.x,
+        pBINK.binKey.data.K.y,
         &genPoint,
         &pubPoint
     );
 
-    do {
-        generateXPKey(eCurve, genPoint, genOrder, privateKey, nChannelID, nSequence, bUpgrade, pKey);
-    } while (!verifyXPKey(eCurve, genPoint, pubPoint, pKey));
+#ifdef _DEBUG
+    printf(
+        "Created elliptic curve:\n\n E = EllipticCurve(\n  GF(0x%s),\n  [0, 0, 0, %d, %d]\n ) => y^2 = x^3 + %dx + %d;\n\n G(x; y) = {\n    0x%s,\n    0x%s\n }\n\n K(x; y) = {\n    0x%s,\n    0x%s\n }\n\n\n",
+        pBINK.binKey.data.p,
+        atoi(pBINK.binKey.data.a),
+        atoi(pBINK.binKey.data.b),
+        atoi(pBINK.binKey.data.a),
+        atoi(pBINK.binKey.data.b),
+        pBINK.binKey.data.G.x,
+        pBINK.binKey.data.G.y,
+        pBINK.binKey.data.K.x,
+        pBINK.binKey.data.K.y
+    );
+#endif
 
-    return true;
+    generateXPKey(eCurve, genPoint, genOrder, privateKey, nChannelID, nSequence, bUpgrade, pKey);
+
+    return verifyXPKey(eCurve, genPoint, pubPoint, pKey);
 }

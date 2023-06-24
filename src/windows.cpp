@@ -13,18 +13,28 @@
 
 HWND hMainWindow;
 
-const WCHAR *pAboutLink = L"https://github.com/Endermanch/XPKeygen",
+CONST WCHAR *pAboutLink = L"https://github.com/Endermanch/XPKeygen",
             *pWebsite = L"https://malwarewatch.org",
             *pVersion = L"2.5",
-            *pTitle = L"Windows XP Pro SP3 // Server 2003 SP0 x86 VLK - Enderman[ch]",
-            *pGroupTitle = L"Windows XP Pro SP3 // Server 2003 SP0 x86 VLK",
-            *pRBText = L"z22 / MSKey / Endermanch ◄ 14/06/2023";
+            *pTitle = L"Windows 98 - Windows Server 2003 / SP2 x64 VLK - Enderman[ch]",
+            *pGroupTitle = L"Windows 98 - Windows Server 2003 / SP2 x64 VLK",
+            *pRBText = L"z22 / MSKey / Endermanch ◄ 14/06/2023",
+            *pPresets[256] = {
+                L"Windows 98",
+                L"Windows 98 (OEM)",
+                L"Windows XP VLK",
+                L"Windows XP VLK (OEM)",
+                L"Windows Server 2003 VLK",
+                L"Windows Server 2003 VLK (OEM)",
+                L"Windows XP x64 Edition VLK",
+                L"Windows XP x64 Edition VLK (OEM)",
+            };
 
-bool bServer = false,
+BOOL bServer = false,
      bUpgrade = false,
      bMusic = true;
 
-const int w = 615,
+CONST INT w = 615,
           h = 545,
           x = (GetSystemMetrics(SM_CXSCREEN) - w) / 2,
           y = (GetSystemMetrics(SM_CYSCREEN) - h) / 2;
@@ -543,26 +553,26 @@ LRESULT CALLBACK WNDProc(HWND hWindow, UINT uMessage, WPARAM wParam, LPARAM lPar
 
             case IDC_COMBO1:
                 switch (HIWORD(wParam)) {
-                case CBN_SELCHANGE:
-                    int nSelect = SendMessageW((HWND)lParam, CB_GETCURSEL, 0, 0);
+                    case CBN_SELCHANGE: {
+                        UINT nPresetSelect = SendMessageW((HWND)lParam, CB_GETCURSEL, 0, 0);
 
-                    switch (nSelect) {
-                        case 0:
+                        InitializePreset(nPresetSelect, &pBINKPreset);
+
+                        if (pBINKPreset.binKey.header.dwVersion == 19980206) {
                             EnableWindow(GetDlgItem(hMainWindow, IDC_INPUT2), true);
                             EnableWindow(GetDlgItem(hMainWindow, IDC_INPUT3), false);
 
                             bServer = false;
-                            break;
-
-                        case 1:
+                        }
+                        else {
                             EnableWindow(GetDlgItem(hMainWindow, IDC_INPUT2), false);
                             EnableWindow(GetDlgItem(hMainWindow, IDC_INPUT3), true);
 
                             bServer = true;
-                            break;
-                    }
+                        }
 
-                    break;
+                        break;
+                    }
                 }
 
                 break;
@@ -867,10 +877,11 @@ bool InitializeWindow(HINSTANCE hInstance) {
 
     SendMessageW(hComboBox, WM_SETFONT, (WPARAM)hLabelFont, 0);
 
-    SendMessageW(hComboBox, CB_ADDSTRING, 0, (LPARAM)L"Windows XP (SP0 - SP3)");
-    SendMessageW(hComboBox, CB_ADDSTRING, 0, (LPARAM)L"Windows Server 2003 (SP0)");
+    for (int i = 0; i < countResources(RT_BINK); i++) {
+        SendMessageW(hComboBox, CB_ADDSTRING, 0, (LPARAM)pPresets[i]);
+    }
 
-    SendMessageW(hComboBox, CB_SETCURSEL, 0, 0);
+    SendMessageW(hComboBox, CB_SETCURSEL, 2, 0);
 
     HWND hUpgrade = CreateWindowExW(
         WS_EX_WINDOWEDGE,
@@ -1040,7 +1051,8 @@ bool InitializeWindow(HINSTANCE hInstance) {
 
     HWND hAuthInfoLabel = CreateWindowExW(
         0,
-        L"Static", L"AuthInfo:",
+        L"Static",
+        L"AuthInfo:",
         WS_CHILD | WS_VISIBLE,
         290, 220 + 1,
         70, 16,
@@ -1175,6 +1187,8 @@ bool InitializeWindow(HINSTANCE hInstance) {
 
     ShowWindow(hMainWindow, SW_SHOW);
     UpdateWindow(hMainWindow);
+
+    stopAudio();
 
     MSG uMessage;
 

@@ -4,66 +4,6 @@
 
 #include "header.h"
 
-/* Windows Server 2003 */
-const char pSv[] = "C9AE7AED19F6A7E100AADE98134111AD8118E59B8264734327940064BC675A0C682E19C89695FBFA3A4653E47D47FD7592258C7E3C3C61BBEA07FE5A7E842379";
-const long aSv = 1;
-const long bSv = 0;
-
-// Base point G (Generator)
-const char genXSv[] = "85ACEC9F9F9B456A78E43C3637DC88D21F977A9EC15E5225BD5060CE5B892F24FEDEE574BF5801F06BC232EEF2161074496613698D88FAC4B397CE3B475406A7";
-const char genYSv[] = "66B7D1983F5D4FE43E8B4F1E28685DE0E22BBE6576A1A6B86C67533BF72FD3D082DBA281A556A16E593DB522942C8DD7120BA50C9413DF944E7258BDDF30B3C4";
-
-// Inverse of the public key
-const char pubXSv[] = "90BF6BD980C536A8DB93B52AA9AEBA640BABF1D31BEC7AA345BB7510194A9B07379F552DA7B4A3EF81A9B87E0B85B5118E1E20A098641EE4CCF2045558C98C0E";
-const char pubYSv[] = "6B87D1E658D03868362945CDD582E2CF33EE4BA06369E0EFE9E4851F6DCBEC7F15081E250D171EA0CC4CB06435BCFCFEA8F438C9766743A06CBD06E7EFB4C3AE";
-
-// Order of G <- from MSKey 4-in-1
-const char genOrderSv[] = "4CC5C56529F0237D";
-
-// Computed private key
-const char privateKeySv[] = "2606120F59C05118";
-
-/* Windows XP x64 
-Public key (-K) = (1989960177638374390878377737764297057685259206834686428253479199374616869742150776410973898745805799780071536831208959469038333664656928533078897351495263; 2680493145252003995204016438404731303203625133293449171132691660710342616258476835192643732221910418645447349019141673820306444587247165566828458285756618)
-Order of base point G (n) = 4710798293276956193
-Private key (k) = 4699066967014190092 for INVERSE. 11731326262766101
-
-
-const char pSv[] = "D4B49D04A01EF209121C370DCF0D6292569EC65B8F147A8C62319B6B90DEA2D1CD45199B93582732BFEE27F40BF62D7EB2559BCD08041E301E0D14037A25D989";
-const long aSv = 1;
-const long bSv = 0;
-
-const char genXSv[] = "828A23E65A03F2CE12342DC2B3AA4089C1447DD5C4DC36C0470885A4662F10187037F72B2216C3F671B434267A329BD3363BB27055F0EBBA8A0ABEF451D3F6A3";
-const char genYSv[] = "23B0823295C9CB669E1643B298624083F68C58F14FEEC55D0B247EF37B353A1066F502D7BC71050056C7D006156A26CC9222F5135FB8B255D7773AE0CDCA31E2";
-
-const char pubXSv[] = "25FEB90513F63C0833F1096369149E65C9359F4BCC8DE9A8F647030F96485BC71929594FF369DB967910B8F0A59BC7C30CF0D38311486293BA0B2952EE648E5F";
-const char pubYSv[] = "A186A2C2913E5584F05E97D3CD49E354E6C41BE329877D7FCC7B2BF877A0B00C9298901D305D7FF012FF7902B4202D4ED64D6A90C6AD05960253BAB8F69D68BF";
-
-// Order of G <- CALCULATED ON MY i7-12700K in 20 seconds
-const char genOrderSv[] = "41601E16BF4A1621";
-
-// Computed private key <- CALCULATED ON MY i7-12700K in 5 minutes 40 seconds
-const char privateKeySv[] = "29AD943EA2EA15"; */
-
-
-/* Windows XP x64 OEM
-const char pSv[] = "A6FEDE9568C7863685F783F864A5943D34DED45EC460EEB2EC0455B01BC3C4D21FE081E479F2338BAAF7B10903AC89D23774938F41FDBFB6F16A615ECE5A04A1";
-const long aSv = 1;
-const long bSv = 0;
-
-const char genXSv[] = "3CCFE20244697894A5CF8F8A57F335462C8C7C4935E171A373C2C1BA85C304D121A48931A99E4DD911945B410E10DEF21C00B2ED33FEF4E8F6FCBE16014E0AA8";
-const char genYSv[] = "7D3F4583D6A45EF6547532B2AE6AC83281317A212223A47ADA92FB48DF055A225DD3E8DF17850EBFAD744780C8166B14F0A39C96B3D216E2247A89518985F6F8";
-
-const char pubXSv[] = "19D3C8A75DACEAB3CE42970BCF3097F712FD3F6D3B171BE55D7AEF6210C48194480E998AFAC181935DCB9E66BD23769AF5E7ABB8ED2A7E5FAABD4FD1F8D24F7C";
-const char pubYSv[] = "47A138CDB3C51BEB5443A00FD24734C6DE5DCE6DBA3B2EC337984C09B1CB108E45E8B50F78AEE5FBCA068C0B285576AC26099BD4D52AE2AF9F32A30A340705AF";
-
-// Order of G <- CALCULATED ON MY i7-12700K in 2 hours (single threaded).
-const char genOrderSv[] = "4782F84242B0A5E1";
-
-// Computed private key <- CALCULATED ON MY i7-12700K in 5 minutes 40 seconds
-const char privateKeySv[] = "15F9B7336005CB82";// or "3189410EE2AADA5F";
-*/
-
 /* Unpacks the Windows Server 2003-like Product Key. */
 VOID unpackServer(
     QWORD (&pRaw)[2],
@@ -218,6 +158,30 @@ BOOL verifyServerKey(
     // Translate the byte digest into a 32-bit integer - this is our computed hash.
     // Truncate the hash to 31 bits.
     DWORD compHash = BYDWORD(msgDigest) & BITMASK(31);
+
+#ifdef _DEBUG
+    printf(
+        "Validating an XP-like key using following values:\n\n         Upgrade: %s\n      Channel ID: %d\n        AuthInfo: 0x%03lX\n\n            Hash: 0x%08lX\n   Computed Hash: 0x%08lX\n       Signature: 0x%s\n\n",
+        pUpgrade ? "True" : "False",
+        pChannelID,
+        pAuthInfo,
+        pHash,
+        compHash,
+        BN_bn2hex(s)
+    );
+
+    printf(
+        " K(x; y) = {\n    0x%s,\n    0x%s\n }\n\n",
+        BN_bn2hex(x),
+        BN_bn2hex(y)
+    );
+
+    printf(
+        " compHash %s pHash (%s)\n\n\n",
+        compHash == pHash ? "==" : "!=",
+        compHash == pHash ? "VALID" : "INVALID"
+    );
+#endif
 
     BN_free(s);
     BN_free(e);
@@ -386,6 +350,27 @@ VOID generateServerKey(
         // Pack product key.
         packServer(pRaw, pUpgrade, pChannelID, pHash, pSignature, pAuthInfo);
 
+#ifdef _DEBUG
+        printf(
+            "Generating a Server 2003-like key using following values:\n\n         Upgrade: %s\n      Channel ID: %d\n        AuthInfo: 0x%03lX\n\n Generator Order: 0x%s\n     Private Key: 0x%s\n            Seed: 0x%s\n\n",
+            pUpgrade ? "True" : "False",
+            pChannelID,
+            pAuthInfo,
+            BN_bn2hex(genOrder),
+            BN_bn2hex(privateKey),
+            BN_bn2hex(c)
+        );
+
+        printf(
+            " R(x; y) = {\n    0x%s,\n    0x%s\n }\n\n Signature bits: %02d (%s)\n BN_mod_sqrt(Intermediate): %s\n\n\n",
+            BN_bn2hex(x),
+            BN_bn2hex(y),
+            BN_num_bits(s),
+            BN_num_bits(s) <= 62 ? "GOOD" : "BAD",
+            noSquare ? "False" : "True"
+        );
+#endif
+
         EC_POINT_free(r);
     } while (pSignature > BITMASK(62) || noSquare);
     // ↑ ↑ ↑
@@ -405,32 +390,39 @@ VOID generateServerKey(
 }
 
 BOOL keyServer(
-     CHAR (&pKey)[PK_LENGTH + NULL_TERMINATOR],
-    DWORD nChannelID,
-    DWORD nAuthInfo,
-     BOOL bUpgrade
+        CHAR (&pKey)[PK_LENGTH + NULL_TERMINATOR],
+    BINKEYEX &pBINK,
+       DWORD nChannelID,
+       DWORD nAuthInfo,
+        BOOL bUpgrade
 ) {
     // If the Channel ID isn't valid, quit.
     if (nChannelID >= 1'000)
         return false;
 
+    if (pBINK.n == 0 ||
+        pBINK.k == 0) {
+#ifdef _DEBUG
+        printf("!! NOT IMPLEMENTED !!\n\n");
+#endif
+        return false;
+    }
+
     BIGNUM *privateKey = BN_new();
     BIGNUM *genOrder = BN_new();
 
-    BN_hex2bn(&privateKey, privateKeySv);
-    BN_hex2bn(&genOrder, genOrderSv);
+    BN_set_word(privateKey, pBINK.k);
+    BN_set_word(genOrder, pBINK.n);
 
     EC_POINT *genPoint, *pubPoint;
     EC_GROUP *eCurve = initializeEllipticCurve(
-        pSv,
-        aSv,
-        bSv,
-        genXSv,
-        genYSv,
-        pubXSv,
-        pubYSv,
-        genOrder,
-        privateKey,
+        pBINK.binKey.data.p,
+        pBINK.binKey.data.a,
+        pBINK.binKey.data.b,
+        pBINK.binKey.data.G.x,
+        pBINK.binKey.data.G.y,
+        pBINK.binKey.data.K.x,
+        pBINK.binKey.data.K.y,
         &genPoint,
         &pubPoint
     );
@@ -441,9 +433,23 @@ BOOL keyServer(
         nAuthInfo &= 0x3FF;
     }
 
-    do {
-        generateServerKey(eCurve, genPoint, genOrder, privateKey, nChannelID, nAuthInfo, bUpgrade, pKey);
-    } while (!verifyServerKey(eCurve, genPoint, pubPoint, pKey));
+#ifdef _DEBUG
+    printf(
+        "Created elliptic curve:\n\n E = EllipticCurve(\n  GF(0x%s),\n  [0, 0, 0, %d, %d]\n ) => y^2 = x^3 + %dx + %d;\n\n G(x; y) = {\n    0x%s,\n    0x%s\n }\n\n K(x; y) = {\n    0x%s,\n    0x%s\n }\n\n AuthInfo: 0x%03lX\n\n\n",
+        pBINK.binKey.data.p,
+        atoi(pBINK.binKey.data.a),
+        atoi(pBINK.binKey.data.b),
+        atoi(pBINK.binKey.data.a),
+        atoi(pBINK.binKey.data.b),
+        pBINK.binKey.data.G.x,
+        pBINK.binKey.data.G.y,
+        pBINK.binKey.data.K.x,
+        pBINK.binKey.data.K.y,
+        nAuthInfo
+    );
+#endif
 
-    return true;
+    generateServerKey(eCurve, genPoint, genOrder, privateKey, nChannelID, nAuthInfo, bUpgrade, pKey);
+
+    return verifyServerKey(eCurve, genPoint, pubPoint, pKey);
 }

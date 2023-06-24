@@ -61,12 +61,15 @@
 
 #include "header.h"
 
-char pCharset[] = "BCDFGHJKMPQRTVWXY2346789";
+BINKEYEX  pBINKPreset;
+CHAR      pCharset[] = "BCDFGHJKMPQRTVWXY2346789";
 
-INT wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ WCHAR *pCmdLine, _In_ INT nCmdShow) {    
+INT wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ WCHAR *pCmdLine, _In_ INT nCmdShow) {
     srand(GetTickCount64());
 
-    //base(L"D:\\Desktop\\ECC Research\\pIDgen\\pidgenxp.dll");
+    InitializePreset(2, &pBINKPreset);
 
     return InitializeWindow(hInstance);
+
+    // don't forget to free bink presets (I Forgor)
 }

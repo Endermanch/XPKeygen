@@ -10,33 +10,39 @@
     <Filter Include="Resources">
       <UniqueIdentifier>{8c8a7e56-fe48-4168-8eb0-0715690de23e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Resources\BINK">
+      <UniqueIdentifier>{f5cd78be-da1c-4cfe-a3b9-56a21fefadf4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resources\Bitmaps">
+      <UniqueIdentifier>{7847a032-b440-4d10-a8a6-ed1b9cb62197}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resources\Wave">
+      <UniqueIdentifier>{198e89a5-06ad-4790-bfaa-1e59588bf2d2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <Media Include="resources\neon.wav">
-      <Filter>Resources</Filter>
-    </Media>
     <Media Include="resources\pxiii.wav">
-      <Filter>Resources</Filter>
+      <Filter>Resources\Wave</Filter>
     </Media>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="resources\ender.bmp">
-      <Filter>Resources</Filter>
-    </Image>
     <Image Include="resources\icon.ico">
       <Filter>Resources</Filter>
     </Image>
-    <Image Include="resources\logo.bmp">
-      <Filter>Resources</Filter>
+    <Image Include="resources\dropdown.bmp">
+      <Filter>Resources\Bitmaps</Filter>
+    </Image>
+    <Image Include="resources\ender.bmp">
+      <Filter>Resources\Bitmaps</Filter>
     </Image>
     <Image Include="resources\musicoff.bmp">
-      <Filter>Resources</Filter>
+      <Filter>Resources\Bitmaps</Filter>
     </Image>
     <Image Include="resources\musicon.bmp">
-      <Filter>Resources</Filter>
+      <Filter>Resources\Bitmaps</Filter>
     </Image>
-    <Image Include="resources\dropdown.bmp">
-      <Filter>Resources</Filter>
+    <Image Include="resources\logo.bmp">
+      <Filter>Resources\Bitmaps</Filter>
     </Image>
   </ItemGroup>
   <ItemGroup>
@@ -44,6 +50,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\presets.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -69,10 +78,39 @@
     <ClCompile Include="src\utilities.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\presets.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="src\resource.rc">
       <Filter>Resources</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="resources\bink\BINK98SE.bin">
+      <Filter>Resources\BINK</Filter>
+    </None>
+    <None Include="resources\bink\BINK98SEOEM.bin">
+      <Filter>Resources\BINK</Filter>
+    </None>
+    <None Include="resources\bink\BINK2003.bin">
+      <Filter>Resources\BINK</Filter>
+    </None>
+    <None Include="resources\bink\BINK2003OEM.bin">
+      <Filter>Resources\BINK</Filter>
+    </None>
+    <None Include="resources\bink\BINKXP.bin">
+      <Filter>Resources\BINK</Filter>
+    </None>
+    <None Include="resources\bink\BINKXP64.bin">
+      <Filter>Resources\BINK</Filter>
+    </None>
+    <None Include="resources\bink\BINKXP64OEM.bin">
+      <Filter>Resources\BINK</Filter>
+    </None>
+    <None Include="resources\bink\BINKXPOEM.bin">
+      <Filter>Resources\BINK</Filter>
+    </None>
   </ItemGroup>
 </Project>

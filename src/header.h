@@ -18,6 +18,7 @@
 
 #pragma warning(disable: 6387)
 
+// Arithmetic macros
 #define PK_LENGTH                       25
 #define NULL_TERMINATOR                 1
 
@@ -27,8 +28,13 @@
 #define FIELD_BITS_2003                 512
 #define FIELD_BYTES_2003                (FIELD_BITS_2003 / 8)
 
+#define FIELD_BITS_MAX                  FIELD_BITS_2003
+#define FIELD_BYTES_MAX                 FIELD_BYTES_2003
+
 #define SHA_MSG_LENGTH_XP               (4 + 2 * FIELD_BYTES)
 #define SHA_MSG_LENGTH_2003             (3 + 2 * FIELD_BYTES_2003)
+
+#define FIELD_LENGTH_MAX                (FIELD_BYTES_MAX * 2 + NULL_TERMINATOR)
 
 #define NEXTSNBITS(field, n, offset)    (((QWORD)(field) >> (offset)) & ((1ULL << (n)) - 1))
 #define FIRSTNBITS(field, n)            NEXTSNBITS((field), (n), 0)
@@ -37,8 +43,10 @@
 #define LOBYTES(field, bytes)           FIRSTNBITS((QWORD)(field), ((bytes) * 8))
 
 #define BYDWORD(n)                      (DWORD)(*((n) + 0) | *((n) + 1) << 8 | *((n) + 2) << 16 | *((n) + 3) << 24)
+#define BYDWORDBE(n)                    (DWORD)(*((n) + 3) | *((n) + 2) << 8 | *((n) + 1) << 16 | *((n) + 0) << 24)
 #define BITMASK(n)                      ((1ULL << (n)) - 1)
 
+// Control macros
 #define IDC_BUTTON1 1000
 #define IDC_BUTTON2 1001
 #define IDC_BUTTON3 1002
@@ -67,18 +75,71 @@
 #define IDC_LABEL5  1109
 #define IDC_LABEL6  1110
 
+// Resource macros
+#define BINK_RETAIL     MAKEINTRESOURCEW(1)
+#define BINK_OEM        MAKEINTRESOURCEW(2)
+
+#define RT_BINK         TEXT("BINK")
+
+// Type definitions
 typedef uint64_t QWORD;
 
-extern char pCharset[];
+// Structures
+typedef struct _EC_BYTE_POINT {
+    CHAR x[FIELD_LENGTH_MAX];   // x-coordinate of the point on the elliptic curve.
+    CHAR y[FIELD_LENGTH_MAX];   // y-coordinate of the point on the elliptic curve.
+} EC_BYTE_POINT;
 
-extern const char pXP[];
-extern const long aXP;
-extern const long bXP;
+typedef struct _BINKHDR {
+    // Original BINK header.
+    ULONG32 dwSize;
+    ULONG32 dwHeaderLength;
+    ULONG32 dwChecksum;
+    ULONG32 dwVersion;
+    ULONG32 dwKeySizeInDWORDs;
+    ULONG32 dwHashLength;
+    ULONG32 dwSignatureLength;
+
+    // Extended BINK header. (Windows Server 2003+)
+    ULONG32 dwAuthCodeLength;
+    ULONG32 dwProductIDLength;
+} BINKHDR, *PBINKHDR;
+
+typedef struct _BINKDATA {
+    CHAR p[FIELD_LENGTH_MAX];   // Finite Field order p.
+    CHAR a[FIELD_LENGTH_MAX];   // Elliptic Curve parameter a.
+    CHAR b[FIELD_LENGTH_MAX];   // Elliptic Curve parameter b.
+
+    EC_BYTE_POINT G;            // Base point (Generator) G.
+    EC_BYTE_POINT K;            // Public key K.
+} BINKDATA, *PBINKDATA;
+
+typedef struct _BINKEY {
+    BINKHDR  header;
+    BINKDATA data;
+} BINKEY, *PBINKEY;
+
+typedef struct _BINKEYEX {
+    // ID of the BINK. (Separate from the BINKEY structure per spec)
+    ULONG32 dwID;
+
+    // BINKEY structure.
+    BINKEY binKey;
+
+    // Calculated values.
+    EC_BYTE_POINT I;            // Inverse of the public key K.
+    QWORD n;                    // Order of the generator G.
+    QWORD k;                    // Private Key k.
+} BINKEYEX, *PBINKEYEX;
+
+extern BINKEYEX  pBINKPreset;
+extern CHAR      pCharset[];
+
 
 // xp.cpp
 VOID unpackXP(
-    QWORD(&pRaw)[2],
-    BOOL &pUpgrade,
+    QWORD (&pRaw)[2],
+     BOOL &pUpgrade,
     DWORD &pChannelID,
     DWORD &pSequence,
     DWORD &pHash,
@@ -106,10 +167,11 @@ VOID generateXPKey(
 );
 
 BOOL keyXP(
-    CHAR(&pKey)[PK_LENGTH + NULL_TERMINATOR],
-    DWORD nChannelID,
-    DWORD nSequence,
-    BOOL bUpgrade
+        CHAR (&pKey)[PK_LENGTH + NULL_TERMINATOR],
+    BINKEYEX &pBINK,
+       DWORD nChannelID,
+       DWORD nSequence,
+        BOOL bUpgrade
 );
 
 
@@ -151,10 +213,11 @@ VOID generateServerKey(
 );
 
 BOOL keyServer(
-     CHAR (&pKey)[PK_LENGTH + NULL_TERMINATOR],
-    DWORD nChannelID,
-    DWORD nAuthInfo,
-     BOOL bUpgrade
+        CHAR (&pKey)[PK_LENGTH + NULL_TERMINATOR],
+    BINKEYEX &pBINK,
+       DWORD nChannelID,
+       DWORD nAuthInfo,
+        BOOL bUpgrade
 );
 
 
@@ -166,17 +229,15 @@ void stopAudio();
 bool playAudio(HINSTANCE hInstance, WCHAR *lpName, UINT bFlags);
 
 EC_GROUP *initializeEllipticCurve(
-    const char *pSel,
-    long aSel,
-    long bSel,
-    const char *generatorXSel,
-    const char *generatorYSel,
-    const char *publicKeyXSel,
-    const char *publicKeyYSel,
-    BIGNUM *genOrderSel,
-    BIGNUM *privateKeySel,
-    EC_POINT **genPoint,
-    EC_POINT **pubPoint
+    CONST CHAR *pSel,
+    CONST CHAR *aSel,
+    CONST CHAR *bSel,
+    CONST CHAR *generatorXSel,
+    CONST CHAR *generatorYSel,
+    CONST CHAR *publicKeyXSel,
+    CONST CHAR *publicKeyYSel,
+      EC_POINT **genPoint,
+      EC_POINT **pubPoint
 );
 
 int BN_bn2lebin(const BIGNUM *a, unsigned char *to, int tolen);
@@ -195,6 +256,7 @@ bool InitializeWindow(HINSTANCE hInstance);
 
 
 // bink.cpp
-void base(WCHAR *pPath);
+VOID InitializePreset(UINT nIndex, BINKEYEX *pBINK);
+UINT countResources(WCHAR *pName);
 
 #endif //KEYGEN_HEADER_H
