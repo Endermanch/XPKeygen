@@ -301,18 +301,18 @@ but the algorithm is well-documented. The implementation in my case generates ab
 I will add more decent reads into the bibliography in later releases.
 
 **Understanding basics of Windows XP Activation**:
-* [[1] Inside Windows Product Activation - Fully Licensed](https://www.licenturion.com/xp/fully-licensed-wpa.txt)
-* [[2] MSKey 4-in-1 ReadMe](https://malwarewatch.org/documents/MSKey4in1.pdf)
-* [[3] Windows序列号产生原理(椭圆曲线法)](https://blog.csdn.net/zhiyuan411/article/details/5156330)
+* [[1] Inside Windows Product Activation - Fully Licensed](https://www.licenturion.com/xp/fully-licensed-wpa.txt) | [archive.org](https://web.archive.org/web/20230620124157/https://www.licenturion.com/xp/fully-licensed-wpa.txt)
+* [[2] MSKey 4-in-1 ReadMe](https://malwarewatch.org/documents/MSKey4in1.pdf) | [archive.org](https://archive.org/details/217618817-mskey-4in-1-read-me)
+* [[3] Windows序列号产生原理(椭圆曲线法)](https://blog.csdn.net/zhiyuan411/article/details/5156330) | [archive.org](https://web.archive.org/web/20230523202310/https://blog.csdn.net/zhiyuan411/article/details/5156330)
 
 **Understanding Elliptic Curve Cryptography**:
-* [[4] Elliptic Curve Cryptography for Beginners - Matt Rickard](https://matt-rickard.com/elliptic-curve-cryptography)
-* [[5] Elliptic Curve Cryptography (ECC) - Practical Cryptography for Developers](https://cryptobook.nakov.com/asymmetric-key-ciphers/elliptic-curve-cryptography-ecc)
-* [[6] A (Relatively Easy To Understand) Primer on Elliptic Curve Cryptography - Cloudflare](https://blog.cloudflare.com/a-relatively-easy-to-understand-primer-on-elliptic-curve-cryptography/)
+* [[4] Elliptic Curve Cryptography for Beginners - Matt Rickard](https://matt-rickard.com/elliptic-curve-cryptography) | [archive.org](https://web.archive.org/web/20230608071430/https://matt-rickard.com/elliptic-curve-cryptography)
+* [[5] Elliptic Curve Cryptography (ECC) - Practical Cryptography for Developers](https://cryptobook.nakov.com/asymmetric-key-ciphers/elliptic-curve-cryptography-ecc) | [archive.org](https://web.archive.org/web/2/https://cryptobook.nakov.com/asymmetric-key-ciphers/elliptic-curve-cryptography-ecc)
+* [[6] A (Relatively Easy To Understand) Primer on Elliptic Curve Cryptography - Cloudflare](https://blog.cloudflare.com/a-relatively-easy-to-understand-primer-on-elliptic-curve-cryptography/) | [archive.org](https://web.archive.org/web/20230609014138/https://blog.cloudflare.com/a-relatively-easy-to-understand-primer-on-elliptic-curve-cryptography/)
 
 **Public discussions**:
-* [[7] Windows 98 Equivalent // Server 2003 Algorithm](https://github.com/Endermanch/XPKeygen/issues/3)
-* [[8] Cracking Windows XP](https://forums.mydigitallife.net/threads/is-there-any-way-to-crack-decrypt-the-winxp-consumer-activation-system-to-generate-activation-ids.80133/)
+* [[7] Windows 98 Equivalent // Server 2003 Algorithm](https://github.com/Endermanch/XPKeygen/issues/3) | [archive.org](https://web.archive.org/web/2/https://github.com/Endermanch/XPKeygen/issues/3)
+* [[8] Cracking Windows XP](https://forums.mydigitallife.net/threads/is-there-any-way-to-crack-decrypt-the-winxp-consumer-activation-system-to-generate-activation-ids.80133/) | [archive.org](https://web.archive.org/web/20230613025511/https://forums.mydigitallife.net/threads/is-there-any-way-to-crack-decrypt-the-winxp-consumer-activation-system-to-generate-activation-ids.80133/)
 
 ## Contributing / Usage
 **If you're going to showcase or fork this software, please credit Endermanch, z22 and MSKey**.<br>
