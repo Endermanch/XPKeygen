@@ -8,6 +8,8 @@ The **Raw Product Key (RPK)** is supplied in form of 9 digits `XXX-YYYYYY` and i
 ### Download
 Head over to the [**Releases**](https://github.com/Endermanch/XPKeygen/releases) tab and download the latest version from there.
 
+## Plans
+This project is not dead — I'll try my best to bring it to fruition.
 
 ## *The problem*
 **In general, the only thing that separates us from generating valid Windows XP keys for EVERY EDITION and EVERY BUILD is the lack of respective private keys generated from their public counterparts inside `pidgen.dll`**. There's no code for the elliptic curve discrete logarithm function widely available online, there's only vague information on how to do it.
